@@ -27,6 +27,8 @@ The **Swatch Applicator** is a handheld placer. Click the applicator button next
 
 ![Swatch Applicator placing a random palette](docs/swatch-applicator.png)
 
+![Swatch Applicator hologram](docs/applicator-hologram.gif)
+
 Theme format:
 
 ```json
