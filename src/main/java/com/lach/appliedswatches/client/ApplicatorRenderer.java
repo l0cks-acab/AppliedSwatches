@@ -64,7 +64,7 @@ public class ApplicatorRenderer extends BlockEntityWithoutLevelRenderer {
         if (ctx != ItemDisplayContext.GUI) renderHologram(mc, state, pose, buffers, r, g, b);
     }
 
-    /** A small see-through copy of the block spinning above the screen, with a faint projection cone. */
+    /** A small see-through copy of the block spinning above the screen, with a pale fluix-purple projection cone. */
     private static void renderHologram(Minecraft mc, BlockState state, PoseStack pose, MultiBufferSource buffers, float r, float g, float b) {
         BakedModel model = mc.getBlockRenderer().getBlockModel(state);
         float t = (System.currentTimeMillis() % 6000L) / 6000f;
@@ -79,10 +79,10 @@ public class ApplicatorRenderer extends BlockEntityWithoutLevelRenderer {
         float[][] hi = {{cx - h, cz - h}, {cx - h, cz + h}, {cx + h, cz + h}, {cx + h, cz - h}};
         for (int i = 0; i < 4; i++) {
             int j = (i + 1) % 4;
-            beam.addVertex(m, lo[i][0], Y / 16, lo[i][1]).setColor(0.35f, 0.85f, 1f, 0.10f);
-            beam.addVertex(m, lo[j][0], Y / 16, lo[j][1]).setColor(0.35f, 0.85f, 1f, 0.10f);
-            beam.addVertex(m, hi[j][0], base, hi[j][1]).setColor(0.35f, 0.85f, 1f, 0.02f);
-            beam.addVertex(m, hi[i][0], base, hi[i][1]).setColor(0.35f, 0.85f, 1f, 0.02f);
+            beam.addVertex(m, lo[i][0], Y / 16, lo[i][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
+            beam.addVertex(m, lo[j][0], Y / 16, lo[j][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
+            beam.addVertex(m, hi[j][0], base, hi[j][1]).setColor(0.62f, 0.32f, 1f, 0.10f);
+            beam.addVertex(m, hi[i][0], base, hi[i][1]).setColor(0.62f, 0.32f, 1f, 0.10f);
         }
 
         pose.pushPose();
