@@ -132,6 +132,12 @@ public class ApplicatorItem extends Item {
         return InteractionResult.FAIL;
     }
 
+    /** Changing the selection shouldn't drop and re-raise the item in hand. */
+    @Override
+    public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
+        return slotChanged || !newStack.is(this);
+    }
+
     @Override
     public Component getName(ItemStack stack) {
         ApplicatorData d = data(stack);

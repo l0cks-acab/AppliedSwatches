@@ -19,9 +19,9 @@ The **Theme Terminal** works the same way but picks from named themes instead of
 
 ![Theme Terminal](docs/theme-terminal.png)
 
-The **Swatch Applicator** is a handheld placer. Click the applicator button next to a terminal's floppy button to load the current picks into it; that also links it to the terminal. Right-click places the selected block straight out of the ME network, and its screen shows what is selected.
+The **Swatch Applicator** is a handheld placer. Click the applicator button next to a terminal's floppy button to load the current picks into it; that also links it to the terminal. Right-click places the selected block straight out of the ME network. Its screen shows the selected block, with a spinning hologram of it above.
 
-- Sneak + scroll (or sneak + right-click) steps through the palette; past the last block is Random, which places any palette block per click
+- Shift + scroll (or Shift + right-click) steps through the palette; past the last block is Random, which places any palette block per click
 - Works within 64 blocks of the linked terminal, in the same dimension (configurable)
 - Uses the network's power and storage; nothing is kept in the item
 
@@ -47,10 +47,3 @@ Recipes: Swatch Terminal (shapeless) = ME Terminal, Logic Processor, red, green 
 Config (`config/appliedswatches-server.toml`): `swatchTerminalIdlePower` and `themeTerminalIdlePower`, AE per tick, default 2; `applicator.range`, default 64 (0 = anywhere in the dimension).
 
 Requires AE2 19.x.
-
-## Releasing
-
-1. Bump `mod_version` in `gradle.properties` and add a matching section to `CHANGELOG.md`.
-2. Push a tag `v<version>`. The Release workflow builds the jar and publishes it to Modrinth, CurseForge and GitHub Releases.
-
-One-time setup in the repo settings: secrets `MODRINTH_TOKEN` and `CURSEFORGE_TOKEN`, variables `MODRINTH_ID` and `CURSEFORGE_ID` (project ids).
