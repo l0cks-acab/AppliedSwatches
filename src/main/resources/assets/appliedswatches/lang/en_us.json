@@ -44,5 +44,21 @@
   "gui.appliedswatches.save_theme": "Save as theme",
   "gui.appliedswatches.save_theme_ok": "Save theme",
   "gui.appliedswatches.theme_name": "Theme name",
-  "gui.appliedswatches.theme_saved": "Saved theme %s (open it in a Theme Terminal)"
+  "gui.appliedswatches.theme_saved": "Saved theme %s (open it in a Theme Terminal)",
+  "item.appliedswatches.swatch_applicator": "Swatch Applicator",
+  "item.appliedswatches.swatch_applicator.named": "%s (%s)",
+  "item.appliedswatches.swatch_applicator.random": "Random",
+  "item.appliedswatches.swatch_applicator.selected": "Selected: %s  [%s]",
+  "item.appliedswatches.swatch_applicator.tip": "Load a palette from a Swatch or Theme Terminal",
+  "item.appliedswatches.swatch_applicator.palette": "%s · %s blocks",
+  "item.appliedswatches.swatch_applicator.linked": "Linked to terminal at %s, %s, %s",
+  "item.appliedswatches.swatch_applicator.controls": "Sneak + scroll or sneak + right-click to change block",
+  "item.appliedswatches.swatch_applicator.empty": "No palette loaded",
+  "item.appliedswatches.swatch_applicator.unlinked": "Linked terminal not found",
+  "item.appliedswatches.swatch_applicator.out_of_range": "Out of range of the linked terminal",
+  "item.appliedswatches.swatch_applicator.offline": "Linked network is offline",
+  "item.appliedswatches.swatch_applicator.none_stored": "None of that block left in the network",
+  "gui.appliedswatches.load_applicator": "Load into Swatch Applicator",
+  "gui.appliedswatches.no_applicator": "No Swatch Applicator in your inventory",
+  "gui.appliedswatches.applicator_loaded": "Loaded %s blocks (%s) into the Swatch Applicator"
 }

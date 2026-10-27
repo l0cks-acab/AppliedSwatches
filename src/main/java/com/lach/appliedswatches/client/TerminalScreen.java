@@ -1,9 +1,11 @@
 package com.lach.appliedswatches.client;
 
+import com.lach.appliedswatches.AppliedSwatches;
 import com.lach.appliedswatches.SwatchMenu;
 import com.lach.appliedswatches.SwatchTerminalBlockEntity;
 import com.lach.appliedswatches.net.CandidatesPayload;
 import com.lach.appliedswatches.net.ExportPayload;
+import com.lach.appliedswatches.net.LoadApplicatorPayload;
 import com.lach.appliedswatches.net.RefreshPayload;
 import com.lach.appliedswatches.net.ReturnPayload;
 import net.minecraft.ChatFormatting;
@@ -54,7 +56,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     private int scroll;
     private boolean wasOnline;
     protected Button perItemBtn, fullBtn;
-    private Button exportBtn;
+    private Button exportBtn, applicatorBtn;
     private AbstractSliderButton toleranceSlider;
     private List<MenuEntry> fileMenu = List.of();
     private boolean fileMenuOpen;
@@ -74,6 +76,9 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
 
     /** Items skipped by the player. */
     protected abstract Set<Item> excluded();
+
+    /** Name given to the palette when it is loaded into an applicator. */
+    protected abstract String paletteName();
 
     /** Blocks that always count as a match when stored, whatever their colour. */
     protected Set<Item> preferred() {
@@ -120,6 +125,24 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         menuW = 60;
         for (MenuEntry e : entries) menuW = Math.max(menuW, font.width(e.label()) + 12);
         floppy = addRenderableWidget(new FloppyButton(x, y, b -> setFileMenuOpen(!fileMenuOpen)));
+        ItemStack icon = new ItemStack(AppliedSwatches.APPLICATOR.get());
+        applicatorBtn = addRenderableWidget(new Button(x + 18, y, 16, 16, Component.empty(), b -> loadApplicator(), s -> s.get()) {
+            @Override
+            protected void renderWidget(GuiGraphics g, int mx, int my, float partial) {
+                super.renderWidget(g, mx, my, partial);
+                g.pose().pushPose();
+                g.pose().translate(getX() + 1, getY() + 1, 0);
+                g.pose().scale(14 / 16f, 14 / 16f, 1);
+                g.renderItem(icon, 0, 0);
+                g.pose().popPose();
+            }
+        });
+        applicatorBtn.setTooltip(Tooltip.create(Component.translatable("gui.appliedswatches.load_applicator")));
+        applicatorBtn.active = networkOnline && !exports.isEmpty();
+    }
+
+    private void loadApplicator() {
+        if (!exports.isEmpty()) PacketDistributor.sendToServer(new LoadApplicatorPayload(List.copyOf(exports), paletteName()));
     }
 
     private void setFileMenuOpen(boolean open) {
@@ -225,6 +248,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             fullBtn.setMessage(Component.translatable(fullOnly ? "gui.appliedswatches.full_only" : "gui.appliedswatches.any_shape"));
         }
         if (exportBtn != null) exportBtn.active = networkOnline && !exports.isEmpty();
+        if (applicatorBtn != null) applicatorBtn.active = networkOnline && !exports.isEmpty();
         updatePanel();
     }
 

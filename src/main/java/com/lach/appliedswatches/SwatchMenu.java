@@ -67,6 +67,11 @@ public class SwatchMenu extends AbstractContainerMenu {
         for (int c = 0; c < 9; c++) addSlot(new Slot(inv, c, INV_X + c * 18, INV_Y + 58));
     }
 
+    /** Where the terminal is, for linking an applicator; null on the client. */
+    public @Nullable net.minecraft.core.GlobalPos terminalPos() {
+        return be == null || be.getLevel() == null ? null : net.minecraft.core.GlobalPos.of(be.getLevel().dimension(), be.getBlockPos());
+    }
+
     public boolean online() {
         return online.get() == 1;
     }

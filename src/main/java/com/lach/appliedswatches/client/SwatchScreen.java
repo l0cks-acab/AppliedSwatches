@@ -85,9 +85,14 @@ public class SwatchScreen extends TerminalScreen {
         nameCancel = Button.builder(Component.translatable("gui.cancel"), b -> closeNamePrompt()).bounds(px + 82, py + 38, 70, 16).build();
     }
 
+    @Override
+    protected String paletteName() {
+        return Component.translatable(scheme.key()).getString() + " " + Theme.formatColor(rgb());
+    }
+
     private void openNamePrompt() {
         if (themeName == null) initNamePrompt();
-        themeName.setValue(Component.translatable(scheme.key()).getString() + " " + Theme.formatColor(rgb()));
+        themeName.setValue(paletteName());
         themeName.moveCursorToEnd(false);
         themeName.setHighlightPos(0);
         themeName.setFocused(true);

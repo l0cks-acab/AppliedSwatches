@@ -9,4 +9,5 @@ First release.
 - Save and load swatches as .json; import and export themes as .json.
 - Save the current swatch as a theme from the Swatch Terminal.
 - Click a result to skip it on export.
-- Server config for idle power draw of each terminal.
+- Swatch Applicator: handheld placer loaded from either terminal; places the selected or a random palette block straight from ME storage.
+- Server config for idle power draw of each terminal and applicator range.

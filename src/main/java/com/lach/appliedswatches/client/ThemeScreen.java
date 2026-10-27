@@ -32,6 +32,11 @@ public class ThemeScreen extends TerminalScreen {
     }
 
     @Override
+    protected String paletteName() {
+        return selected == null ? "" : selected.name();
+    }
+
+    @Override
     protected int[] buildPalette() {
         return selected == null ? new int[0] : selected.palette();
     }

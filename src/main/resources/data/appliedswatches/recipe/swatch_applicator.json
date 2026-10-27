@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "f": { "item": "ae2:formation_core" },
+    "w": { "item": "ae2:wireless_receiver" },
+    "e": { "item": "ae2:engineering_processor" },
+    "i": { "tag": "c:ingots/iron" }
+  },
+  "pattern": [
+    "fw ",
+    "ie ",
+    "  i"
+  ],
+  "result": { "id": "appliedswatches:swatch_applicator", "count": 1 }
+}
