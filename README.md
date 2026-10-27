@@ -1,5 +1,7 @@
 # AppliedSwatches
 
+![AppliedSwatches](docs/banner.png)
+
 Applied Energistics 2 addon for NeoForge 1.21.1.
 
 ![Swatch and Theme Terminals on an ME network](docs/terminals.png)
