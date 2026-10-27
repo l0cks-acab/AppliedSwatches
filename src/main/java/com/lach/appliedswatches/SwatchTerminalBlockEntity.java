@@ -26,7 +26,6 @@ public class SwatchTerminalBlockEntity extends BlockEntity implements IInWorldGr
 
     private final IManagedGridNode node = GridHelper.createManagedNode(this, Listener.INSTANCE)
             .setFlags(GridFlags.REQUIRE_CHANNEL)
-            .setIdlePowerUsage(2)
             .setInWorldNode(true)
             .setTagName("node");
     private final ItemStackHandler output = new ItemStackHandler(SLOTS) {
@@ -56,7 +55,11 @@ public class SwatchTerminalBlockEntity extends BlockEntity implements IInWorldGr
     @Override
     public void onLoad() {
         super.onLoad();
-        if (level != null && !level.isClientSide) GridHelper.onFirstTick(this, be -> be.node.create(be.level, be.worldPosition));
+        if (level != null && !level.isClientSide) GridHelper.onFirstTick(this, be -> {
+            be.node.setIdlePowerUsage(be.getBlockState().is(AppliedSwatches.THEME_TERMINAL.get())
+                    ? Config.THEME_IDLE_POWER.get() : Config.SWATCH_IDLE_POWER.get());
+            be.node.create(be.level, be.worldPosition);
+        });
     }
 
     @Override

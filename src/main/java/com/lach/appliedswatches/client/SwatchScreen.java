@@ -34,6 +34,10 @@ public class SwatchScreen extends TerminalScreen {
     private static final Set<Item> EXCLUDED = new HashSet<>();
 
     private int dragging;
+    /** "Save as theme" name prompt, drawn over the screen while open. */
+    private boolean naming;
+    private EditBox themeName;
+    private Button nameSave, nameCancel;
     private EditBox hex;
     private Button schemeBtn;
 
@@ -69,7 +73,63 @@ public class SwatchScreen extends TerminalScreen {
         addFileMenu(x + 8, y + FILE_Y, List.of(
                 new MenuEntry(Component.translatable("gui.appliedswatches.save"), this::save),
                 new MenuEntry(Component.translatable("gui.appliedswatches.load"), this::load),
+                new MenuEntry(Component.translatable("gui.appliedswatches.save_theme"), this::openNamePrompt),
                 new MenuEntry(Component.translatable("gui.appliedswatches.folder"), () -> Util.getPlatform().openFile(dir().toFile()))));
+    }
+
+    private void initNamePrompt() {
+        int px = leftPos + imageWidth / 2 - 80, py = topPos + 50;
+        themeName = new EditBox(font, px + 8, py + 18, 144, 14, Component.translatable("gui.appliedswatches.theme_name"));
+        themeName.setMaxLength(40);
+        nameSave = Button.builder(Component.translatable("gui.appliedswatches.save_theme_ok"), b -> saveAsTheme()).bounds(px + 8, py + 38, 70, 16).build();
+        nameCancel = Button.builder(Component.translatable("gui.cancel"), b -> closeNamePrompt()).bounds(px + 82, py + 38, 70, 16).build();
+    }
+
+    private void openNamePrompt() {
+        if (themeName == null) initNamePrompt();
+        themeName.setValue(Component.translatable(scheme.key()).getString() + " " + Theme.formatColor(rgb()));
+        themeName.moveCursorToEnd(false);
+        themeName.setHighlightPos(0);
+        themeName.setFocused(true);
+        naming = true;
+    }
+
+    private void closeNamePrompt() {
+        naming = false;
+        if (themeName != null) themeName.setFocused(false);
+    }
+
+    private void saveAsTheme() {
+        String name = themeName.getValue().trim();
+        if (name.isEmpty()) return;
+        Theme t = new Theme(name, palette.clone(), List.of(), tolerance, false);
+        try {
+            Path dest = ThemeManager.userDir().resolve(t.fileName());
+            for (int i = 2; java.nio.file.Files.exists(dest); i++) dest = ThemeManager.userDir().resolve(t.fileName().replace(".json", "_" + i + ".json"));
+            FileDialogs.write(dest, t.toJson());
+            FileDialogs.toast("gui.appliedswatches.theme_saved", name);
+        } catch (Exception e) {
+            FileDialogs.toast("gui.appliedswatches.file_error", e.getMessage());
+        }
+        closeNamePrompt();
+    }
+
+    @Override
+    public void render(GuiGraphics g, int mx, int my, float partial) {
+        // Keep hover effects off the screen underneath while the prompt is open.
+        super.render(g, naming ? -1 : mx, naming ? -1 : my, partial);
+        if (!naming) return;
+        int px = leftPos + imageWidth / 2 - 80, py = topPos + 50;
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 500);
+        g.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0x90000000);
+        g.fill(px - 1, py - 1, px + 161, py + 61, 0xFF15171A);
+        g.fill(px, py, px + 160, py + 60, 0xFF3C424B);
+        g.drawString(font, Component.translatable("gui.appliedswatches.theme_name"), px + 8, py + 6, 0xFFE4E8EE, false);
+        themeName.render(g, mx, my, partial);
+        nameSave.render(g, mx, my, partial);
+        nameCancel.render(g, mx, my, partial);
+        g.pose().popPose();
     }
 
     @Override
@@ -211,12 +271,28 @@ public class SwatchScreen extends TerminalScreen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
+        if (naming) {
+            if (themeName.mouseClicked(mx, my, button)) themeName.setFocused(true);
+            else if (!nameSave.mouseClicked(mx, my, button)) nameCancel.mouseClicked(mx, my, button);
+            return true;
+        }
         if (button == 0) {
             dragging = pick(mx, my, 0);
             if (dragging != 0) return true;
         }
         if (!hex.isMouseOver(mx, my)) hex.setFocused(false);
         return super.mouseClicked(mx, my, button);
+    }
+
+    @Override
+    public boolean charTyped(char c, int mods) {
+        if (naming) return themeName.charTyped(c, mods);
+        return super.charTyped(c, mods);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mx, double my, double sx, double sy) {
+        return naming || super.mouseScrolled(mx, my, sx, sy);
     }
 
     @Override
@@ -236,6 +312,12 @@ public class SwatchScreen extends TerminalScreen {
 
     @Override
     public boolean keyPressed(int key, int scan, int mods) {
+        if (naming) {
+            if (key == GLFW.GLFW_KEY_ESCAPE) closeNamePrompt();
+            else if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) saveAsTheme();
+            else themeName.keyPressed(key, scan, mods);
+            return true;
+        }
         if (hex.isFocused() && key != GLFW.GLFW_KEY_ESCAPE) return hex.keyPressed(key, scan, mods) || true;
         return super.keyPressed(key, scan, mods);
     }

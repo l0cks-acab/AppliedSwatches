@@ -40,5 +40,9 @@
   "gui.appliedswatches.user_theme": "Your theme",
   "gui.appliedswatches.theme_blocks": "%s pinned blocks",
   "gui.appliedswatches.pinned": "Pinned by theme",
-  "gui.appliedswatches.export_json": "Export .json"
+  "gui.appliedswatches.export_json": "Export .json",
+  "gui.appliedswatches.save_theme": "Save as theme",
+  "gui.appliedswatches.save_theme_ok": "Save theme",
+  "gui.appliedswatches.theme_name": "Theme name",
+  "gui.appliedswatches.theme_saved": "Saved theme %s (open it in a Theme Terminal)"
 }

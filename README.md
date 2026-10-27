@@ -7,7 +7,7 @@ The **Swatch Terminal** joins an ME network (uses one channel) through fluix cab
 - Schemes: single, monochrome, analogous, complementary, split complementary, triadic
 - Tolerance slider (CIELAB ΔE), amount per block (1 to 64), full blocks only or any shape
 - Click a result to skip it; Return puts the output back into the network
-- Floppy button: save or load the swatch as a `.json` file
+- Floppy button: save or load the swatch as a `.json` file, or save it as a theme for the Theme Terminal
 - Output slots are exposed to hoppers and pipes
 - Block colours are read from each block's model textures on the client, so resource packs change the matches
 
@@ -30,4 +30,13 @@ Model: AE2's machine casing textures plus a front drawn by `tools/front_texture.
 
 Recipes (shapeless): Swatch Terminal = ME Terminal, Logic Processor, red, green and blue dye. Theme Terminal = Swatch Terminal + book.
 
+Config (`config/appliedswatches-server.toml`): `swatchTerminalIdlePower` and `themeTerminalIdlePower`, AE per tick, default 2.
+
 Requires AE2 19.x.
+
+## Releasing
+
+1. Bump `mod_version` in `gradle.properties` and add a matching section to `CHANGELOG.md`.
+2. Push a tag `v<version>`. The Release workflow builds the jar and publishes it to Modrinth, CurseForge and GitHub Releases.
+
+One-time setup in the repo settings: secrets `MODRINTH_TOKEN` and `CURSEFORGE_TOKEN`, variables `MODRINTH_ID` and `CURSEFORGE_ID` (project ids).

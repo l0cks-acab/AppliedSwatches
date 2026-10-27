@@ -1,5 +1,6 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
+issueTrackerURL="https://github.com/l0cks-acab/AppliedSwatches/issues"
 license="${mod_license}"
 
 [[mods]]
@@ -8,6 +9,8 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="${mod_authors}"
 description='''${mod_description}'''
+logoFile="logo.png"
+displayURL="https://github.com/l0cks-acab/AppliedSwatches"
 
 [[dependencies.${mod_id}]]
     modId="neoforge"

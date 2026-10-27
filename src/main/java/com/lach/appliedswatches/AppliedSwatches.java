@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
@@ -52,6 +53,7 @@ public class AppliedSwatches {
             () -> IMenuTypeExtension.create((id, inv, buf) -> new SwatchMenu(AppliedSwatches.THEME_MENU.get(), id, inv)));
 
     public AppliedSwatches(IEventBus modBus, ModContainer container) {
+        container.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
