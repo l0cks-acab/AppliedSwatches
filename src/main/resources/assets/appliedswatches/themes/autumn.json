@@ -1,0 +1,20 @@
+{
+  "name": "Autumn",
+  "palette": [
+    "#D5761E",
+    "#8E2020",
+    "#E0B030",
+    "#6B4423",
+    "#A35A2A"
+  ],
+  "blocks": [
+    "minecraft:orange_wool",
+    "minecraft:red_wool",
+    "minecraft:yellow_terracotta",
+    "minecraft:spruce_planks",
+    "minecraft:pumpkin",
+    "minecraft:acacia_planks",
+    "minecraft:hay_block"
+  ],
+  "tolerance": 20
+}

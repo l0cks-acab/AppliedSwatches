@@ -1,0 +1,21 @@
+{
+  "name": "Medieval Castle",
+  "palette": [
+    "#7D7D7D",
+    "#6A6A6A",
+    "#A2834F",
+    "#4B3A26",
+    "#5E6B4A",
+    "#C4B79A"
+  ],
+  "blocks": [
+    "minecraft:stone_bricks",
+    "minecraft:cobblestone",
+    "minecraft:mossy_stone_bricks",
+    "minecraft:cracked_stone_bricks",
+    "minecraft:oak_planks",
+    "minecraft:dark_oak_planks",
+    "minecraft:andesite"
+  ],
+  "tolerance": 18
+}

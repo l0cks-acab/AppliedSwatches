@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "appliedswatches:swatch_terminal" },
+    { "item": "minecraft:book" }
+  ],
+  "result": { "id": "appliedswatches:theme_terminal", "count": 1 }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "Jungle Temple",
+  "palette": [
+    "#6E8A3A",
+    "#3D5A1E",
+    "#7D7D63",
+    "#A4825A",
+    "#C1A05F"
+  ],
+  "blocks": [
+    "minecraft:mossy_cobblestone",
+    "minecraft:jungle_log",
+    "minecraft:jungle_planks",
+    "minecraft:mossy_stone_bricks",
+    "minecraft:chiseled_stone_bricks",
+    "minecraft:moss_block"
+  ],
+  "tolerance": 20
+}

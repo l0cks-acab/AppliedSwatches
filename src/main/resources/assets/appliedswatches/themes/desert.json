@@ -1,0 +1,22 @@
+{
+  "name": "Desert",
+  "palette": [
+    "#DBCF9F",
+    "#D8C78F",
+    "#C9A46B",
+    "#A15325",
+    "#985E43",
+    "#6E8A3A"
+  ],
+  "blocks": [
+    "minecraft:sandstone",
+    "minecraft:cut_sandstone",
+    "minecraft:smooth_sandstone",
+    "minecraft:chiseled_sandstone",
+    "minecraft:terracotta",
+    "minecraft:orange_terracotta",
+    "minecraft:red_sandstone",
+    "minecraft:sand"
+  ],
+  "tolerance": 18
+}

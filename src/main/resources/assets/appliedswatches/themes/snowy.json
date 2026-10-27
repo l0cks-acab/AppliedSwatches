@@ -1,0 +1,20 @@
+{
+  "name": "Snowy Tundra",
+  "palette": [
+    "#F9FEFE",
+    "#D7E6F2",
+    "#8DB4FA",
+    "#74A7FD",
+    "#3B2A17",
+    "#7D7D7D"
+  ],
+  "blocks": [
+    "minecraft:snow_block",
+    "minecraft:packed_ice",
+    "minecraft:blue_ice",
+    "minecraft:spruce_planks",
+    "minecraft:stone_bricks",
+    "minecraft:white_concrete"
+  ],
+  "tolerance": 18
+}

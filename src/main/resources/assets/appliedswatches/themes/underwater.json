@@ -1,0 +1,21 @@
+{
+  "name": "Underwater",
+  "palette": [
+    "#63A598",
+    "#335B4B",
+    "#ACC8BE",
+    "#23466E",
+    "#2D8C8C",
+    "#E3D6A6"
+  ],
+  "blocks": [
+    "minecraft:prismarine",
+    "minecraft:prismarine_bricks",
+    "minecraft:dark_prismarine",
+    "minecraft:sea_lantern",
+    "minecraft:tube_coral_block",
+    "minecraft:sand",
+    "minecraft:blue_concrete"
+  ],
+  "tolerance": 20
+}

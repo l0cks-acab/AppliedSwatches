@@ -1,0 +1,22 @@
+{
+  "name": "Nether",
+  "palette": [
+    "#6F3634",
+    "#2C161A",
+    "#7B0D0D",
+    "#2A2328",
+    "#F4A42B",
+    "#5A1F2E"
+  ],
+  "blocks": [
+    "minecraft:netherrack",
+    "minecraft:nether_bricks",
+    "minecraft:red_nether_bricks",
+    "minecraft:blackstone",
+    "minecraft:crimson_planks",
+    "minecraft:magma_block",
+    "minecraft:shroomlight",
+    "minecraft:gilded_blackstone"
+  ],
+  "tolerance": 20
+}

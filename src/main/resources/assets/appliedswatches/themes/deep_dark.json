@@ -1,0 +1,18 @@
+{
+  "name": "Deep Dark",
+  "palette": [
+    "#0D1E24",
+    "#052A32",
+    "#29DFEB",
+    "#505050",
+    "#1F1F27"
+  ],
+  "blocks": [
+    "minecraft:sculk",
+    "minecraft:deepslate_tiles",
+    "minecraft:polished_deepslate",
+    "minecraft:cobbled_deepslate",
+    "minecraft:reinforced_deepslate"
+  ],
+  "tolerance": 18
+}

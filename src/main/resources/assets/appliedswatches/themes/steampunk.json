@@ -1,0 +1,21 @@
+{
+  "name": "Steampunk",
+  "palette": [
+    "#C06C50",
+    "#A1755A",
+    "#4FAB90",
+    "#E3A63A",
+    "#3E2912",
+    "#5A5A5A"
+  ],
+  "blocks": [
+    "minecraft:copper_block",
+    "minecraft:cut_copper",
+    "minecraft:exposed_copper",
+    "minecraft:oxidized_copper",
+    "minecraft:bricks",
+    "minecraft:dark_oak_planks",
+    "minecraft:gold_block"
+  ],
+  "tolerance": 20
+}

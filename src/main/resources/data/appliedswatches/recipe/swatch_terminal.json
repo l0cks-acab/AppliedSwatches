@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "ae2:terminal" },
+    { "item": "ae2:logic_processor" },
+    { "tag": "c:dyes/red" },
+    { "tag": "c:dyes/green" },
+    { "tag": "c:dyes/blue" }
+  ],
+  "result": { "id": "appliedswatches:swatch_terminal", "count": 1 }
+}

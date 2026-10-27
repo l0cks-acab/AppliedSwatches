@@ -1,0 +1,22 @@
+{
+  "name": "Cyberpunk",
+  "palette": [
+    "#FF2BD6",
+    "#18E0FF",
+    "#7A2BFF",
+    "#2A1050",
+    "#15121F",
+    "#F2F25A"
+  ],
+  "blocks": [
+    "minecraft:magenta_concrete",
+    "minecraft:cyan_concrete",
+    "minecraft:purple_concrete",
+    "minecraft:black_concrete",
+    "minecraft:sea_lantern",
+    "minecraft:crying_obsidian",
+    "minecraft:polished_blackstone_bricks",
+    "minecraft:light_blue_concrete"
+  ],
+  "tolerance": 22
+}

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "appliedswatches:block/swatch_terminal" },
+    "facing=east": { "model": "appliedswatches:block/swatch_terminal", "y": 90 },
+    "facing=south": { "model": "appliedswatches:block/swatch_terminal", "y": 180 },
+    "facing=west": { "model": "appliedswatches:block/swatch_terminal", "y": 270 }
+  }
+}
