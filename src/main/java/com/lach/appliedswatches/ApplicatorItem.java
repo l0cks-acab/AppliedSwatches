@@ -6,6 +6,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.storage.StorageHelper;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -22,6 +23,7 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -60,7 +62,7 @@ public class ApplicatorItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (!player.isSecondaryUseActive()) return InteractionResultHolder.pass(stack);
-        if (!level.isClientSide) cycle(player, stack, 1);
+        if (level.isClientSide) ClientBridge.openApplicator(hand);
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
 
@@ -69,7 +71,7 @@ public class ApplicatorItem extends Item {
         Player player = ctx.getPlayer();
         if (player == null) return InteractionResult.PASS;
         if (player.isSecondaryUseActive()) {
-            if (!ctx.getLevel().isClientSide) cycle(player, ctx.getItemInHand(), 1);
+            if (ctx.getLevel().isClientSide) ClientBridge.openApplicator(ctx.getHand());
             return InteractionResult.sidedSuccess(ctx.getLevel().isClientSide);
         }
         if (ctx.getLevel().isClientSide) return InteractionResult.SUCCESS;
@@ -84,27 +86,53 @@ public class ApplicatorItem extends Item {
         IGrid grid = terminal.managedNode().isActive() ? terminal.managedNode().getGrid() : null;
         if (grid == null) return fail(player, "offline");
 
-        List<Item> order = new ArrayList<>();
-        d.selectedBlock().ifPresentOrElse(order::add, () -> {
-            order.addAll(d.blocks());
-            Collections.shuffle(order);
-        });
+        Level level = ctx.getLevel();
+        List<BlockPos> targets = d.mode() == PlaceMode.SINGLE ? List.of(ctx.getClickedPos())
+                : d.mode().targets(level, ctx.getClickedPos(), ctx.getClickedFace(), d.size());
+        if (targets.isEmpty()) return InteractionResult.FAIL;
         var storage = grid.getStorageService().getInventory();
         var energy = grid.getEnergyService();
         var src = IActionSource.ofPlayer(player, terminal);
-        BlockHitResult hit = new BlockHitResult(ctx.getClickLocation(), ctx.getClickedFace(), ctx.getClickedPos(), ctx.isInside());
-        for (Item item : order) {
-            if (!(item instanceof BlockItem block)) continue;
-            AEItemKey key = AEItemKey.of(item);
-            BlockPlaceContext place = new BlockPlaceContext(ctx.getLevel(), player, ctx.getHand(), key.toStack(1), hit);
-            if (!place.canPlace()) return InteractionResult.FAIL;
-            // Check the simulated extraction first so a failed placement never has to put the block back.
-            if (StorageHelper.poweredExtraction(energy, storage, key, 1, src, Actionable.SIMULATE) < 1) continue;
-            if (!block.place(place).consumesAction()) return InteractionResult.FAIL;
-            StorageHelper.poweredExtraction(energy, storage, key, 1, src);
-            return InteractionResult.CONSUME;
+        // Each target is clicked at the same spot within its block as the real click, so stairs and slabs face the same way.
+        Vec3 within = ctx.getClickLocation().subtract(Vec3.atLowerCornerOf(ctx.getClickedPos()));
+        int placed = 0;
+        boolean outOfStock = false;
+        for (BlockPos target : targets) {
+            BlockHitResult hit = d.mode() == PlaceMode.SINGLE
+                    ? new BlockHitResult(ctx.getClickLocation(), ctx.getClickedFace(), ctx.getClickedPos(), ctx.isInside())
+                    : new BlockHitResult(Vec3.atLowerCornerOf(target).add(within), ctx.getClickedFace(), target, false);
+            List<Item> order = new ArrayList<>();
+            d.selectedBlock().ifPresentOrElse(order::add, () -> {
+                order.addAll(d.blocks());
+                Collections.shuffle(order);
+            });
+            boolean done = false;
+            for (Item item : order) {
+                if (!(item instanceof BlockItem block)) continue;
+                AEItemKey key = AEItemKey.of(item);
+                BlockPlaceContext place = new BlockPlaceContext(level, player, ctx.getHand(), key.toStack(1), hit);
+                if (!place.canPlace()) {
+                    done = true;
+                    break;
+                }
+                // Check the simulated extraction first so a failed placement never has to put the block back.
+                if (StorageHelper.poweredExtraction(energy, storage, key, 1, src, Actionable.SIMULATE) < 1) continue;
+                if (block.place(place).consumesAction()) {
+                    StorageHelper.poweredExtraction(energy, storage, key, 1, src);
+                    placed++;
+                }
+                done = true;
+                break;
+            }
+            if (!done && d.selectedBlock().isPresent()) {
+                outOfStock = true;
+                break;
+            }
         }
-        return fail(player, "none_stored");
+        if (placed == 0) return outOfStock || targets.size() == 1 ? fail(player, "none_stored") : InteractionResult.FAIL;
+        if (targets.size() > 1)
+            player.displayClientMessage(Component.translatable("item.appliedswatches.swatch_applicator.placed", placed, targets.size()), true);
+        return InteractionResult.CONSUME;
     }
 
     private static @Nullable SwatchTerminalBlockEntity linkedTerminal(ServerPlayer player, ApplicatorData d) {

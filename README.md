@@ -23,7 +23,13 @@ The **Theme Terminal** works the same way but picks from named themes instead of
 
 The **Swatch Applicator** is a handheld placer. Click the applicator button next to a terminal's floppy button to load the current picks into it; that also links it to the terminal. Right-click places the selected block straight out of the ME network. Its screen shows the selected block, with a spinning hologram of it above.
 
-- Shift + scroll (or Shift + right-click) steps through the palette; past the last block is Random, which places any palette block per click
+- Shift + scroll steps through the palette; past the last block is Random, which places any palette block per click
+- Shift + right-click opens its settings: pick the block (or Random) and a placement mode
+  - **Single**: one block
+  - **Wand**: extends the clicked surface across matching blocks, like a building wand (3×3 to 9×9)
+  - **Line**: a straight line out of the clicked face (2 to 16 long)
+  - **Square**: a square on the clicked face (3×3 to 9×9)
+- Multi-block modes show a purple outline of where blocks will go
 - Works within 64 blocks of the linked terminal, in the same dimension (configurable)
 - Uses the network's power and storage; nothing is kept in the item
 

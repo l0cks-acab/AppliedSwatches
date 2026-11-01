@@ -52,7 +52,7 @@
   "item.appliedswatches.swatch_applicator.tip": "Load a palette from a Swatch or Theme Terminal",
   "item.appliedswatches.swatch_applicator.palette": "%s · %s blocks",
   "item.appliedswatches.swatch_applicator.linked": "Linked to terminal at %s, %s, %s",
-  "item.appliedswatches.swatch_applicator.controls": "Sneak + scroll or sneak + right-click to change block",
+  "item.appliedswatches.swatch_applicator.controls": "Shift + right-click: settings · Shift + scroll: change block",
   "item.appliedswatches.swatch_applicator.empty": "No palette loaded",
   "item.appliedswatches.swatch_applicator.unlinked": "Linked terminal not found",
   "item.appliedswatches.swatch_applicator.out_of_range": "Out of range of the linked terminal",
@@ -60,5 +60,18 @@
   "item.appliedswatches.swatch_applicator.none_stored": "None of that block left in the network",
   "gui.appliedswatches.load_applicator": "Load into Swatch Applicator",
   "gui.appliedswatches.no_applicator": "No Swatch Applicator in your inventory",
-  "gui.appliedswatches.applicator_loaded": "Loaded %s blocks (%s) into the Swatch Applicator"
+  "gui.appliedswatches.applicator_loaded": "Loaded %s blocks (%s) into the Swatch Applicator",
+  "applicator_mode.appliedswatches.single": "Single",
+  "applicator_mode.appliedswatches.wand": "Wand",
+  "applicator_mode.appliedswatches.line": "Line",
+  "applicator_mode.appliedswatches.square": "Square",
+  "applicator_mode.appliedswatches.single.tip": "Places one block against the face you click.",
+  "applicator_mode.appliedswatches.wand.tip": "Like a building wand: extends the surface you click across matching blocks.",
+  "applicator_mode.appliedswatches.line.tip": "A straight line growing out of the face you click.",
+  "applicator_mode.appliedswatches.square.tip": "A square laid flat against the face you click.",
+  "gui.appliedswatches.applicator.one": "1 block",
+  "gui.appliedswatches.applicator.length": "Length: %s",
+  "gui.appliedswatches.applicator.reach": "Area: %s × %s",
+  "gui.appliedswatches.applicator.square": "Size: %s × %s",
+  "item.appliedswatches.swatch_applicator.placed": "Placed %s of %s blocks"
 }

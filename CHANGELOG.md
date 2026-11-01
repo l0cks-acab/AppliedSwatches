@@ -10,4 +10,5 @@ First release.
 - Save the current swatch as a theme from the Swatch Terminal.
 - Click a result to skip it on export.
 - Swatch Applicator: handheld placer loaded from either terminal; places the selected or a random palette block straight from ME storage, with a hologram of the selected block.
+- Applicator settings (Shift + right-click): block picker plus Single, Wand, Line and Square placement modes with an outline preview.
 - Server config for idle power draw of each terminal and applicator range.

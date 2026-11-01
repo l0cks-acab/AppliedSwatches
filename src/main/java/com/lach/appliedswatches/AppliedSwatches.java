@@ -1,6 +1,7 @@
 package com.lach.appliedswatches;
 
 import appeng.api.AECapabilities;
+import com.lach.appliedswatches.net.ApplicatorConfigPayload;
 import com.lach.appliedswatches.net.CandidatesPayload;
 import com.lach.appliedswatches.net.CycleApplicatorPayload;
 import com.lach.appliedswatches.net.LoadApplicatorPayload;
@@ -122,6 +123,12 @@ public class AppliedSwatches {
             SwatchMenu menu = openMenu(ctx);
             if (menu != null) loadApplicator((ServerPlayer) ctx.player(), menu, p);
         });
+        r.playToServer(ApplicatorConfigPayload.TYPE, ApplicatorConfigPayload.STREAM_CODEC, (p, ctx) -> {
+            ItemStack held = ctx.player().getItemInHand(p.hand());
+            if (!(held.getItem() instanceof ApplicatorItem)) return;
+            ApplicatorData d = ApplicatorItem.data(held);
+            held.set(APPLICATOR_DATA.get(), d.withSelected(p.selected() < 0 ? ApplicatorData.RANDOM : p.selected()).withPlacement(p.mode(), p.size()));
+        });
         r.playToServer(CycleApplicatorPayload.TYPE, CycleApplicatorPayload.STREAM_CODEC, (p, ctx) -> {
             ItemStack held = ctx.player().getMainHandItem();
             if (held.getItem() instanceof ApplicatorItem) ApplicatorItem.cycle(ctx.player(), held, p.dir());
@@ -142,7 +149,8 @@ public class AppliedSwatches {
             return;
         }
         if (blocks.isEmpty()) return;
-        target.set(APPLICATOR_DATA.get(), new ApplicatorData(blocks, 0, p.name(), java.util.Optional.of(link)));
+        ApplicatorData old = ApplicatorItem.data(target);
+        target.set(APPLICATOR_DATA.get(), new ApplicatorData(blocks, 0, p.name(), java.util.Optional.of(link), old.mode(), old.size()));
         player.displayClientMessage(Component.translatable("gui.appliedswatches.applicator_loaded", blocks.size(), p.name()).withStyle(ChatFormatting.GREEN), false);
     }
 
