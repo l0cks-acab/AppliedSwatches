@@ -33,6 +33,12 @@ The **Swatch Applicator** is a handheld placer. Click the applicator button next
 - Works within 64 blocks of the linked terminal, in the same dimension (configurable)
 - Uses the network's power and storage; nothing is kept in the item
 
+| Single | Wand |
+| --- | --- |
+| ![Single mode](docs/applicator-single.gif) | ![Wand mode](docs/applicator-wand.gif) |
+| **Line** | **Square** |
+| ![Line mode](docs/applicator-line.gif) | ![Square mode](docs/applicator-square.gif) |
+
 ![Swatch Applicator placing a random palette](docs/swatch-applicator.png)
 
 ![Swatch Applicator hologram](docs/applicator-hologram.gif)
