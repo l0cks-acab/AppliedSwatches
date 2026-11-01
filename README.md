@@ -11,11 +11,14 @@ The **Swatch Terminal** joins an ME network (uses one channel) through fluix cab
 - Schemes: single, monochrome, analogous, complementary, split complementary, triadic
 - Tolerance slider (CIELAB ΔE), amount per block (1 to 64), full blocks only or any shape
 - Click a result to skip it; Return puts the output back into the network
+- Crafting table button (off by default) also lists matching blocks you don't have but could craft, from any crafting or stonecutter recipe. They get a green + and Export skips them. Left off, big modpacks don't flood the grid.
 - Floppy button: save or load the swatch as a `.json` file, or save it as a theme for the Theme Terminal
 - Output slots are exposed to hoppers and pipes
 - Block colours are read from each block's model textures on the client, so resource packs change the matches
 
 ![Swatch Terminal](docs/swatch-terminal.png)
+
+![Craftable blocks toggle](docs/craftable-toggle.png)
 
 The **Theme Terminal** works the same way but picks from named themes instead of one colour. It ships with 14: Autumn, Cherry Blossom, Cyberpunk, Deep Dark, Desert, Forest, Jungle Temple, Medieval Castle, Nether, Pastel, Snowy Tundra, Steampunk, The End and Underwater. Its floppy button imports and exports themes as `.json`; imported themes live in `<game dir>/appliedswatches/themes/`. Resource packs can add built-in themes under `assets/<namespace>/themes/`.
 

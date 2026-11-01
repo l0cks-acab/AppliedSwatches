@@ -36,6 +36,11 @@ public final class ApplicatorClient {
     }
 
     @SubscribeEvent
+    static void recipes(net.neoforged.neoforge.client.event.RecipesUpdatedEvent event) {
+        TerminalScreen.clearCraftableCache();
+    }
+
+    @SubscribeEvent
     static void models(ModelEvent.RegisterAdditional event) {
         event.register(ApplicatorRenderer.BASE);
     }
