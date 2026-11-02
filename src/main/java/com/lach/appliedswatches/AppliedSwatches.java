@@ -3,6 +3,7 @@ package com.lach.appliedswatches;
 import appeng.api.AECapabilities;
 import com.lach.appliedswatches.net.ApplicatorConfigPayload;
 import com.lach.appliedswatches.net.CandidatesPayload;
+import com.lach.appliedswatches.net.CraftPayload;
 import com.lach.appliedswatches.net.CycleApplicatorPayload;
 import com.lach.appliedswatches.net.LoadApplicatorPayload;
 import com.lach.appliedswatches.net.ExportPayload;
@@ -77,6 +78,7 @@ public class AppliedSwatches {
         modBus.addListener(AppliedSwatches::registerCaps);
         modBus.addListener(AppliedSwatches::registerPayloads);
         modBus.addListener(AppliedSwatches::creativeTabs);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) -> CraftRequests.tick());
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.OnDatapackSyncEvent e) ->
                 e.sendRecipes(net.minecraft.world.item.crafting.RecipeType.CRAFTING, net.minecraft.world.item.crafting.RecipeType.STONECUTTING));
         LOGGER.info("{} loaded", MODID);
@@ -120,6 +122,10 @@ public class AppliedSwatches {
                 menu.export(p.items(), p.perItem());
                 menu.sendCandidates();
             }
+        });
+        r.playToServer(CraftPayload.TYPE, CraftPayload.STREAM_CODEC, (p, ctx) -> {
+            SwatchMenu menu = openMenu(ctx);
+            if (menu != null) menu.craft(p.items(), p.amount());
         });
         r.playToServer(LoadApplicatorPayload.TYPE, LoadApplicatorPayload.STREAM_CODEC, (p, ctx) -> {
             SwatchMenu menu = openMenu(ctx);

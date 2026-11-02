@@ -90,7 +90,7 @@ public record ApplicatorRenderer(boolean hologram) implements SpecialModelRender
         float alpha = 0.55f + 0.08f * (float) Math.sin(t * Math.PI * 46);
         List<BakedQuad> quads = ModelQuads.quads(state, null);
         float hr = r * 0.7f + 0.15f, hg = g * 0.85f + 0.15f, hb = b * 0.8f + 0.2f;
-        out.submitCustomGeometry(pose, Sheets.translucentItemSheet(), (p, vc) -> {
+        out.submitCustomGeometry(pose, Sheets.translucentBlockItemSheet(), (p, vc) -> {
             QuadInstance inst = new QuadInstance();
             inst.setLightCoords(FULL);
             inst.setOverlayCoords(OverlayTexture.NO_OVERLAY);

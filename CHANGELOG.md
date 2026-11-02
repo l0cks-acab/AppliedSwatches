@@ -1,5 +1,19 @@
 # Changelog
 
+## AppliedSwatches 0.2.2
+
+**Autocrafting from the terminals**
+- Blocks your ME network has patterns for now show up in the Swatch and Theme Terminals even when none are stored, with a purple + badge.
+- Right-click any autocraftable block to start an AE2 crafting job for it (amount = the Each setting).
+- New **Craft** button: starts jobs for every matching autocraftable block the network doesn't hold yet, a few per palette colour.
+- Chat reports how many jobs started and how many couldn't (missing ingredients, no free crafting CPU).
+
+**Fixes**
+- 26.1.2: the applicator hologram shows the block's textures again.
+
+**Themes**
+- Your own themes (imported or saved) now sit at the top of the Theme Terminal list, newest first, above the built-in ones.
+
 ## AppliedSwatches 0.2.1
 
 **Swatch Applicator: multi-block placement**

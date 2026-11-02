@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-/** Built-in themes from resource packs ({@code assets/<ns>/themes/*.json}) plus the player's own in the game folder. */
+/** The player's own themes from the game folder (newest first), then built-in ones from resource packs ({@code assets/<ns>/themes/*.json}). */
 public final class ThemeManager {
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -42,7 +42,9 @@ public final class ThemeManager {
         builtin.sort(Comparator.comparing(t -> t.name().toLowerCase()));
         List<Theme> user = new ArrayList<>();
         try (Stream<Path> files = Files.list(userDir())) {
-            for (Path p : files.filter(f -> f.toString().toLowerCase().endsWith(".json")).sorted().toList()) {
+            // Newest first, so a just-imported or just-saved theme is at the top of the list.
+            for (Path p : files.filter(f -> f.toString().toLowerCase().endsWith(".json"))
+                    .sorted(Comparator.comparingLong(ThemeManager::modified).reversed()).toList()) {
                 try {
                     String n = p.getFileName().toString();
                     user.add(Theme.fromJson(FileDialogs.read(p), n.substring(0, n.length() - 5), false));
@@ -53,7 +55,15 @@ public final class ThemeManager {
         } catch (IOException ex) {
             LOGGER.warn("Could not list {}", userDir(), ex);
         }
-        builtin.addAll(user);
-        return builtin;
+        user.addAll(builtin);
+        return user;
+    }
+
+    private static long modified(Path p) {
+        try {
+            return Files.getLastModifiedTime(p).toMillis();
+        } catch (IOException e) {
+            return 0;
+        }
     }
 }
