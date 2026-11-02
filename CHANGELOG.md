@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Re-release of 0.2.0 for CurseForge (the 0.2.0 upload didn't go through). No gameplay changes; see 0.2.0 below for what's new since 0.1.0.
+
 ## 0.2.0
 
 - Swatch Applicator settings screen (Shift + right-click): pick the block or Random, and a placement mode.
