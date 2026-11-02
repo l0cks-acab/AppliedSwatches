@@ -11,8 +11,8 @@ import net.minecraft.world.item.Item;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Block items stored in the terminal's ME network, with amounts. */
-public record CandidatesPayload(boolean online, List<Item> items, long[] amounts) implements CustomPacketPayload {
+/** Block items stored in the terminal's ME network, with amounts, plus the block items its patterns can craft. */
+public record CandidatesPayload(boolean online, List<Item> items, long[] amounts, List<Item> craftables) implements CustomPacketPayload {
     public static final Type<CandidatesPayload> TYPE = new Type<>(AppliedSwatches.id("candidates"));
     private static final StreamCodec<RegistryFriendlyByteBuf, Item> ITEM = ByteBufCodecs.registry(Registries.ITEM);
     public static final StreamCodec<RegistryFriendlyByteBuf, CandidatesPayload> STREAM_CODEC = StreamCodec.of((buf, p) -> {
@@ -22,6 +22,8 @@ public record CandidatesPayload(boolean online, List<Item> items, long[] amounts
             ITEM.encode(buf, p.items.get(i));
             buf.writeVarLong(p.amounts[i]);
         }
+        buf.writeVarInt(p.craftables.size());
+        for (Item it : p.craftables) ITEM.encode(buf, it);
     }, buf -> {
         boolean online = buf.readBoolean();
         int n = Math.min(buf.readVarInt(), 65536);
@@ -31,7 +33,10 @@ public record CandidatesPayload(boolean online, List<Item> items, long[] amounts
             items.add(ITEM.decode(buf));
             amounts[i] = buf.readVarLong();
         }
-        return new CandidatesPayload(online, items, amounts);
+        int c = Math.min(buf.readVarInt(), 65536);
+        List<Item> craftables = new ArrayList<>(c);
+        for (int i = 0; i < c; i++) craftables.add(ITEM.decode(buf));
+        return new CandidatesPayload(online, items, amounts, craftables);
     });
 
     @Override

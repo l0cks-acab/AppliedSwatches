@@ -4,6 +4,7 @@ import com.lach.appliedswatches.AppliedSwatches;
 import com.lach.appliedswatches.SwatchMenu;
 import com.lach.appliedswatches.SwatchTerminalBlockEntity;
 import com.lach.appliedswatches.net.CandidatesPayload;
+import com.lach.appliedswatches.net.CraftPayload;
 import com.lach.appliedswatches.net.ExportPayload;
 import com.lach.appliedswatches.net.LoadApplicatorPayload;
 import com.lach.appliedswatches.net.RefreshPayload;
@@ -46,7 +47,8 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     protected static boolean showCraftable = false;
     private static Set<Item> craftableCache;
 
-    protected record Match(Item item, long amount, int rgb, int swatch, float dist, boolean craftable) {
+    /** {@code craftable}: not stored. {@code autocraft}: the network has a pattern for it. */
+    protected record Match(Item item, long amount, int rgb, int swatch, float dist, boolean craftable, boolean autocraft) {
     }
 
     /** One row of the floppy button's pop-up menu. */
@@ -56,6 +58,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     private static final int MENU_ROW = 14;
 
     private List<Item> stored = List.of();
+    private Set<Item> autocraftable = Set.of();
     private long[] amounts = new long[0];
     private boolean networkOnline, loaded;
     protected int[] palette = new int[0];
@@ -64,7 +67,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     private int scroll;
     private boolean wasOnline;
     protected Button perItemBtn, fullBtn;
-    private Button exportBtn, applicatorBtn, craftBtn;
+    private Button exportBtn, applicatorBtn, craftBtn, craftAllBtn;
     private AbstractSliderButton toleranceSlider;
     private List<MenuEntry> fileMenu = List.of();
     private boolean fileMenuOpen;
@@ -98,12 +101,15 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         super.init();
         int x = leftPos, y = topPos;
         exportBtn = addRenderableWidget(Button.builder(Component.translatable("gui.appliedswatches.export"), b -> export())
-                .bounds(x + GRID_X, y + 113, 60, 16).build());
+                .bounds(x + GRID_X, y + 113, 40, 16).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.appliedswatches.return"), b -> PacketDistributor.sendToServer(ReturnPayload.INSTANCE))
                 .tooltip(Tooltip.create(Component.translatable("gui.appliedswatches.return.tip")))
-                .bounds(x + GRID_X + 62, y + 113, 49, 16).build());
+                .bounds(x + GRID_X + 42, y + 113, 39, 16).build());
+        craftAllBtn = addRenderableWidget(Button.builder(Component.translatable("gui.appliedswatches.craft"), b -> craftMissing())
+                .tooltip(Tooltip.create(Component.translatable("gui.appliedswatches.craft.tip")))
+                .bounds(x + GRID_X + 83, y + 113, 33, 16).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.appliedswatches.refresh"), b -> refresh())
-                .bounds(x + GRID_X + 113, y + 113, 49, 16).build());
+                .bounds(x + GRID_X + 118, y + 113, 44, 16).build());
         initPanel(x, y);
         update();
         refresh();
@@ -258,6 +264,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
 
     public void setCandidates(CandidatesPayload p) {
         stored = p.items();
+        autocraftable = new HashSet<>(p.craftables());
         amounts = p.amounts();
         networkOnline = p.online();
         loaded = true;
@@ -277,10 +284,10 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         matches.clear();
         List<Item> items = new ArrayList<>(stored);
         int storedCount = items.size();
-        if (showCraftable && loaded) {
-            Set<Item> have = new HashSet<>(stored);
-            for (Item it : craftable()) if (!have.contains(it)) items.add(it);
-        }
+        Set<Item> have = new HashSet<>(stored);
+        // Blocks the network can autocraft are always listed; plain recipes only when asked for.
+        for (Item it : autocraftable) if (have.add(it)) items.add(it);
+        if (showCraftable && loaded) for (Item it : craftable()) if (have.add(it)) items.add(it);
         for (int i = 0; i < items.size() && labs.length > 0; i++) {
             Item item = items.get(i);
             boolean craft = i >= storedCount;
@@ -299,8 +306,8 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
                 }
             }
             // Pinned blocks rank ahead of colour matches in their swatch.
-            if (pinned) matches.add(new Match(item, amount, info.rgb(), best, -1, false));
-            else if (bestDist <= tolerance) matches.add(new Match(item, amount, info.rgb(), best, bestDist, craft));
+            if (pinned) matches.add(new Match(item, amount, info.rgb(), best, -1, false, autocraftable.contains(item)));
+            else if (bestDist <= tolerance) matches.add(new Match(item, amount, info.rgb(), best, bestDist, craft, autocraftable.contains(item)));
         }
         Comparator<Match> order = Comparator.comparingInt(Match::swatch).thenComparingDouble(Match::dist);
         matches.sort(order);
@@ -311,6 +318,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             fullBtn.setMessage(Component.translatable(fullOnly ? "gui.appliedswatches.full_only" : "gui.appliedswatches.any_shape"));
         }
         if (exportBtn != null) exportBtn.active = networkOnline && !exports.isEmpty();
+        if (craftAllBtn != null) craftAllBtn.active = networkOnline && !missingCraftables().isEmpty();
         if (applicatorBtn != null) applicatorBtn.active = networkOnline && !exports.isEmpty();
         updateCraftTooltip();
         updatePanel();
@@ -352,6 +360,29 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         for (Match m : matches) if (m.craftable()) crafts.add(m);
         matches.removeAll(crafts);
         matches.addAll(crafts);
+    }
+
+    /** Matching blocks the network doesn't hold but has patterns for, a few per swatch in turn. */
+    private List<Item> missingCraftables() {
+        List<List<Match>> bySwatch = new ArrayList<>();
+        for (int i = 0; i < palette.length; i++) bySwatch.add(new ArrayList<>());
+        for (Match m : matches) if (m.craftable() && m.autocraft() && !excluded().contains(m.item())) bySwatch.get(m.swatch()).add(m);
+        List<Item> out = new ArrayList<>();
+        for (int round = 0; out.size() < SwatchTerminalBlockEntity.SLOTS; round++) {
+            boolean any = false;
+            for (List<Match> list : bySwatch) {
+                if (round >= list.size() || out.size() >= SwatchTerminalBlockEntity.SLOTS) continue;
+                out.add(list.get(round).item());
+                any = true;
+            }
+            if (!any) break;
+        }
+        return out;
+    }
+
+    private void craftMissing() {
+        List<Item> items = missingCraftables();
+        if (!items.isEmpty()) PacketDistributor.sendToServer(new CraftPayload(items, perItem()));
     }
 
     private void export() {
@@ -428,7 +459,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
                 g.pose().pushPose();
                 g.pose().translate(0, 0, 200);
                 g.fill(cx, cy, cx + CELL, cy + CELL, m.craftable() ? 0x50000000 : 0x90000000);
-                if (m.craftable()) drawCraftMark(g, cx + CELL - 8, cy);
+                if (m.craftable()) drawCraftMark(g, cx + CELL - 8, cy, m.autocraft());
                 g.pose().popPose();
             }
         }
@@ -439,10 +470,10 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         }
     }
 
-    /** Small green + badge, 7x7, marking a block that isn't stored but has a recipe. */
-    private static void drawCraftMark(GuiGraphics g, int x, int y) {
+    /** Small + badge, 7x7, marking a block that isn't stored: purple when the network can autocraft it, green for a plain recipe. */
+    private static void drawCraftMark(GuiGraphics g, int x, int y, boolean auto) {
         g.fill(x, y, x + 7, y + 7, 0xFF15171A);
-        g.fill(x + 1, y + 1, x + 6, y + 6, 0xFF2F8A3C);
+        g.fill(x + 1, y + 1, x + 6, y + 6, auto ? 0xFF8A4FE0 : 0xFF2F8A3C);
         g.fill(x + 3, y + 2, x + 4, y + 5, 0xFFFFFFFF);
         g.fill(x + 2, y + 3, x + 5, y + 4, 0xFFFFFFFF);
     }
@@ -476,13 +507,15 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         if (m != null) {
             List<Component> tip = new ArrayList<>();
             tip.add(new ItemStack(m.item()).getHoverName());
-            if (m.craftable()) tip.add(Component.translatable("gui.appliedswatches.craftable").withStyle(ChatFormatting.GREEN));
+            if (m.craftable()) tip.add(Component.translatable(m.autocraft() ? "gui.appliedswatches.autocraftable" : "gui.appliedswatches.craftable")
+                    .withStyle(m.autocraft() ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.GREEN));
             else tip.add(Component.translatable("gui.appliedswatches.stored", String.format("%,d", m.amount())).withStyle(ChatFormatting.GRAY));
             tip.add(Component.literal(m.dist() < 0 ? String.format("#%06X", m.rgb()) : String.format("#%06X  ΔE %.1f", m.rgb(), m.dist()))
                     .withStyle(ChatFormatting.DARK_GRAY));
             if (m.dist() < 0) tip.add(Component.translatable("gui.appliedswatches.pinned").withStyle(ChatFormatting.GOLD));
             if (!m.craftable()) tip.add(Component.translatable(excluded().contains(m.item()) ? "gui.appliedswatches.click_include" : "gui.appliedswatches.click_exclude")
                     .withStyle(ChatFormatting.DARK_AQUA));
+            if (m.autocraft()) tip.add(Component.translatable("gui.appliedswatches.click_craft", perItem()).withStyle(ChatFormatting.LIGHT_PURPLE));
             g.renderComponentTooltip(font, tip, mx, my);
         } else renderTooltip(g, mx, my);
     }
@@ -501,6 +534,13 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             setFileMenuOpen(false);
             if (i >= 0) fileMenu.get(i).action().run();
             return true;
+        }
+        if (button == 1) {
+            Match m = matchAt(mx, my);
+            if (m != null && m.autocraft()) {
+                PacketDistributor.sendToServer(new CraftPayload(List.of(m.item()), perItem()));
+                return true;
+            }
         }
         if (button == 0) {
             Match m = matchAt(mx, my);

@@ -85,8 +85,13 @@ public class SwatchMenu extends AbstractContainerMenu {
         if (!(player instanceof ServerPlayer sp)) return;
         List<Item> items = new ArrayList<>();
         List<Long> amounts = new ArrayList<>();
+        List<Item> craftables = new ArrayList<>();
         IGrid grid = grid();
         if (grid != null) {
+            for (var k : grid.getCraftingService().getCraftables(k -> k instanceof AEItemKey ik && !ik.hasComponents() && ik.getItem() instanceof BlockItem)) {
+                if (craftables.size() >= MAX_CANDIDATES) break;
+                craftables.add(((AEItemKey) k).getItem());
+            }
             for (var e : grid.getStorageService().getCachedInventory()) {
                 if (items.size() >= MAX_CANDIDATES) break;
                 if (e.getKey() instanceof AEItemKey key && !key.hasComponents() && key.getItem() instanceof BlockItem && e.getLongValue() > 0) {
@@ -95,7 +100,7 @@ public class SwatchMenu extends AbstractContainerMenu {
                 }
             }
         }
-        PacketDistributor.sendToPlayer(sp, new CandidatesPayload(grid != null, items, amounts.stream().mapToLong(Long::longValue).toArray()));
+        PacketDistributor.sendToPlayer(sp, new CandidatesPayload(grid != null, items, amounts.stream().mapToLong(Long::longValue).toArray(), craftables));
     }
 
     /** Pulls up to {@code perItem} of each item, in order, out of the network into the output slots. */
@@ -118,6 +123,13 @@ public class SwatchMenu extends AbstractContainerMenu {
             ItemStack rest = ItemHandlerHelper.insertItemStacked(out, key.toStack((int) got), false);
             if (!rest.isEmpty()) StorageHelper.poweredInsert(energy, storage, key, rest.getCount(), src);
         }
+    }
+
+    /** Starts AE2 crafting jobs for {@code amount} of each item that has a pattern. */
+    public void craft(List<Item> items, int amount) {
+        IGrid grid = grid();
+        if (grid == null || be == null || !(player instanceof ServerPlayer sp)) return;
+        CraftRequests.request(sp, grid, IActionSource.ofPlayer(player, be), items, amount);
     }
 
     /** Puts everything in the output slots back into the network. */
