@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 
@@ -17,7 +17,7 @@ import java.util.Set;
  * A named palette, optionally with blocks that always belong to it.
  * JSON: {"name": "Desert", "palette": ["#DBCF9F", ...], "blocks": ["minecraft:sandstone", ...], "tolerance": 20}
  */
-public record Theme(String name, int[] palette, List<ResourceLocation> blocks, int tolerance, boolean builtin) {
+public record Theme(String name, int[] palette, List<Identifier> blocks, int tolerance, boolean builtin) {
     public static final int MAX_COLORS = 8;
 
     public static Theme fromJson(JsonObject json, String fallbackName, boolean builtin) {
@@ -27,9 +27,9 @@ public record Theme(String name, int[] palette, List<ResourceLocation> blocks, i
             if (cols.size() < MAX_COLORS) cols.add(parseColor(e.getAsString()));
         }
         if (cols.isEmpty()) throw new IllegalArgumentException("palette is empty");
-        List<ResourceLocation> blocks = new ArrayList<>();
+        List<Identifier> blocks = new ArrayList<>();
         if (json.has("blocks")) for (JsonElement e : json.getAsJsonArray("blocks")) {
-            ResourceLocation id = ResourceLocation.tryParse(e.getAsString());
+            Identifier id = Identifier.tryParse(e.getAsString());
             if (id != null) blocks.add(id);
         }
         int tol = json.has("tolerance") ? json.get("tolerance").getAsInt() : -1;
@@ -44,7 +44,7 @@ public record Theme(String name, int[] palette, List<ResourceLocation> blocks, i
         o.add("palette", pal);
         if (!blocks.isEmpty()) {
             JsonArray b = new JsonArray();
-            for (ResourceLocation id : blocks) b.add(id.toString());
+            for (Identifier id : blocks) b.add(id.toString());
             o.add("blocks", b);
         }
         if (tolerance > 0) o.addProperty("tolerance", tolerance);
@@ -54,8 +54,8 @@ public record Theme(String name, int[] palette, List<ResourceLocation> blocks, i
     /** Registered items for {@link #blocks()}; unknown ids are skipped. */
     public Set<Item> blockItems() {
         Set<Item> out = new LinkedHashSet<>();
-        for (ResourceLocation id : blocks) {
-            Item item = BuiltInRegistries.ITEM.get(id);
+        for (Identifier id : blocks) {
+            Item item = BuiltInRegistries.ITEM.getValue(id);
             if (item != Items.AIR) out.add(item);
         }
         return out;

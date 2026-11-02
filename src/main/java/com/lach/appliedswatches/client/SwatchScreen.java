@@ -1,16 +1,19 @@
 package com.lach.appliedswatches.client;
 
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.lach.appliedswatches.SwatchMenu;
-import net.minecraft.Util;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.Util;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
@@ -66,7 +69,7 @@ public class SwatchScreen extends TerminalScreen {
         });
         addRenderableWidget(hex);
         schemeBtn = addRenderableWidget(Button.builder(Component.empty(), b -> {
-            scheme = hasShiftDown() ? Scheme.values()[(scheme.ordinal() + Scheme.values().length - 1) % Scheme.values().length] : scheme.next();
+            scheme = minecraft.hasShiftDown() ? Scheme.values()[(scheme.ordinal() + Scheme.values().length - 1) % Scheme.values().length] : scheme.next();
             update();
         }).bounds(x + CTRL_X, y + PICK_Y, CTRL_W, 14).build());
         addSettings(x + CTRL_X, y + PICK_Y + 17, CTRL_W);
@@ -120,21 +123,21 @@ public class SwatchScreen extends TerminalScreen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float partial) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float partial) {
         // Keep hover effects off the screen underneath while the prompt is open.
-        super.render(g, naming ? -1 : mx, naming ? -1 : my, partial);
+        super.extractRenderState(g, naming ? -1 : mx, naming ? -1 : my, partial);
         if (!naming) return;
         int px = leftPos + imageWidth / 2 - 80, py = topPos + 50;
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 500);
+        g.pose().pushMatrix();
+        g.nextStratum();
         g.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0x90000000);
         g.fill(px - 1, py - 1, px + 161, py + 61, 0xFF15171A);
         g.fill(px, py, px + 160, py + 60, 0xFF3C424B);
-        g.drawString(font, Component.translatable("gui.appliedswatches.theme_name"), px + 8, py + 6, 0xFFE4E8EE, false);
-        themeName.render(g, mx, my, partial);
-        nameSave.render(g, mx, my, partial);
-        nameCancel.render(g, mx, my, partial);
-        g.pose().popPose();
+        g.text(font, Component.translatable("gui.appliedswatches.theme_name"), px + 8, py + 6, 0xFFE4E8EE, false);
+        themeName.extractRenderState(g, mx, my, partial);
+        nameSave.extractRenderState(g, mx, my, partial);
+        nameCancel.extractRenderState(g, mx, my, partial);
+        g.pose().popMatrix();
     }
 
     @Override
@@ -200,8 +203,8 @@ public class SwatchScreen extends TerminalScreen {
         if (o.has("excluded")) {
             EXCLUDED.clear();
             for (JsonElement e : o.getAsJsonArray("excluded")) {
-                ResourceLocation id = ResourceLocation.tryParse(e.getAsString());
-                Item item = id == null ? Items.AIR : BuiltInRegistries.ITEM.get(id);
+                Identifier id = Identifier.tryParse(e.getAsString());
+                Item item = id == null ? Items.AIR : BuiltInRegistries.ITEM.getValue(id);
                 if (item != Items.AIR) EXCLUDED.add(item);
             }
         }
@@ -234,7 +237,7 @@ public class SwatchScreen extends TerminalScreen {
     }
 
     @Override
-    protected void renderPanel(GuiGraphics g, int x, int y, int mx, int my) {
+    protected void renderPanel(GuiGraphicsExtractor g, int x, int y, int mx, int my) {
         int sx = x + 8, sy = y + PICK_Y;
         g.fill(sx - 1, sy - 1, sx + SV + 1, sy + SV + 1, 0xFF15171A);
         for (int i = 0; i < SV; i++) {
@@ -250,7 +253,7 @@ public class SwatchScreen extends TerminalScreen {
         int hy = sy + Math.round(hue * (SV - 1));
         g.fill(hx - 1, hy - 1, hx + HUE_W + 1, hy + 2, 0xFFFFFFFF);
         g.fill(hx, hy, hx + HUE_W, hy + 1, 0xFF000000 | Mth.hsvToRgb(hue, 1, 1));
-        g.drawString(font, "#", sx + 1, hex.getY() + 2, 0xFFAAAAAA, false);
+        g.text(font, "#", sx + 1, hex.getY() + 2, 0xFFAAAAAA, false);
         int px = hex.getX() + hex.getWidth() + 4;
         g.fill(px, hex.getY(), hx + HUE_W, hex.getY() + 12, 0xFF15171A);
         g.fill(px + 1, hex.getY() + 1, hx + HUE_W - 1, hex.getY() + 11, 0xFF000000 | rgb());
@@ -275,10 +278,12 @@ public class SwatchScreen extends TerminalScreen {
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mx = event.x(), my = event.y();
+        int button = event.button();
         if (naming) {
-            if (themeName.mouseClicked(mx, my, button)) themeName.setFocused(true);
-            else if (!nameSave.mouseClicked(mx, my, button)) nameCancel.mouseClicked(mx, my, button);
+            if (themeName.mouseClicked(event, doubleClick)) themeName.setFocused(true);
+            else if (!nameSave.mouseClicked(event, doubleClick)) nameCancel.mouseClicked(event, doubleClick);
             return true;
         }
         if (button == 0) {
@@ -286,13 +291,13 @@ public class SwatchScreen extends TerminalScreen {
             if (dragging != 0) return true;
         }
         if (!hex.isMouseOver(mx, my)) hex.setFocused(false);
-        return super.mouseClicked(mx, my, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean charTyped(char c, int mods) {
-        if (naming) return themeName.charTyped(c, mods);
-        return super.charTyped(c, mods);
+    public boolean charTyped(CharacterEvent event) {
+        if (naming) return themeName.charTyped(event);
+        return super.charTyped(event);
     }
 
     @Override
@@ -301,29 +306,31 @@ public class SwatchScreen extends TerminalScreen {
     }
 
     @Override
-    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        double mx = event.x(), my = event.y();
         if (dragging != 0) {
             pick(mx, my, dragging);
             return true;
         }
-        return super.mouseDragged(mx, my, button, dx, dy);
+        return super.mouseDragged(event, dx, dy);
     }
 
     @Override
-    public boolean mouseReleased(double mx, double my, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
         dragging = 0;
-        return super.mouseReleased(mx, my, button);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean keyPressed(int key, int scan, int mods) {
+    public boolean keyPressed(KeyEvent event) {
+        int key = event.key();
         if (naming) {
             if (key == GLFW.GLFW_KEY_ESCAPE) closeNamePrompt();
             else if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) saveAsTheme();
-            else themeName.keyPressed(key, scan, mods);
+            else themeName.keyPressed(event);
             return true;
         }
-        if (hex.isFocused() && key != GLFW.GLFW_KEY_ESCAPE) return hex.keyPressed(key, scan, mods) || true;
-        return super.keyPressed(key, scan, mods);
+        if (hex.isFocused() && key != GLFW.GLFW_KEY_ESCAPE) return hex.keyPressed(event) || true;
+        return super.keyPressed(event);
     }
 }

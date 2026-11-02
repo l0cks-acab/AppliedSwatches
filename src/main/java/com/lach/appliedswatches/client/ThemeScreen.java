@@ -1,8 +1,9 @@
 package com.lach.appliedswatches.client;
 
+import net.minecraft.client.input.MouseButtonEvent;
 import com.lach.appliedswatches.SwatchMenu;
-import net.minecraft.Util;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.Util;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
@@ -113,7 +114,7 @@ public class ThemeScreen extends TerminalScreen {
     }
 
     @Override
-    protected void renderPanel(GuiGraphics g, int x, int y, int mx, int my) {
+    protected void renderPanel(GuiGraphicsExtractor g, int x, int y, int mx, int my) {
         int lx = x + LIST_X, ly = y + LIST_Y;
         g.fill(lx - 1, ly - 1, lx + LIST_W + 1, ly + LIST_ROWS * ROW_H + 1, 0xFF15171A);
         g.fill(lx, ly, lx + LIST_W, ly + LIST_ROWS * ROW_H, 0xFF23272D);
@@ -127,7 +128,7 @@ public class ThemeScreen extends TerminalScreen {
             else if (hover) g.fill(lx, ry, lx + LIST_W, ry + ROW_H, 0xFF333944);
             int stripW = Math.min(t.palette().length, 5) * 4;
             String name = font.plainSubstrByWidth(t.name(), LIST_W - stripW - 7);
-            g.drawString(font, name, lx + 3, ry + 2, t.builtin() ? 0xFFE4E8EE : 0xFF9CD3FF, false);
+            g.text(font, name, lx + 3, ry + 2, t.builtin() ? 0xFFE4E8EE : 0xFF9CD3FF, false);
             for (int c = 0; c < Math.min(t.palette().length, 5); c++) {
                 int sx = lx + LIST_W - stripW - 2 + c * 4;
                 g.fill(sx, ry + 2, sx + 4, ry + ROW_H - 2, 0xFF000000 | t.palette()[c]);
@@ -142,8 +143,8 @@ public class ThemeScreen extends TerminalScreen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float partial) {
-        super.render(g, mx, my, partial);
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float partial) {
+        super.extractRenderState(g, mx, my, partial);
         Theme t = themeAt(mx, my);
         if (t != null) {
             List<Component> tip = new ArrayList<>();
@@ -152,7 +153,7 @@ public class ThemeScreen extends TerminalScreen {
                     .withStyle(net.minecraft.ChatFormatting.GRAY));
             if (!t.blocks().isEmpty())
                 tip.add(Component.translatable("gui.appliedswatches.theme_blocks", t.blocks().size()).withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-            g.renderComponentTooltip(font, tip, mx, my);
+            g.setComponentTooltipForNextFrame(font, tip, mx, my);
         }
     }
 
@@ -164,13 +165,15 @@ public class ThemeScreen extends TerminalScreen {
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mx = event.x(), my = event.y();
+        int button = event.button();
         Theme t = button == 0 ? themeAt(mx, my) : null;
         if (t != null) {
             select(t);
             return true;
         }
-        return super.mouseClicked(mx, my, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override

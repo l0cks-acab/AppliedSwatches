@@ -14,7 +14,7 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
@@ -53,15 +53,15 @@ public class AppliedSwatches {
 
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<ApplicatorData>> APPLICATOR_DATA = COMPONENTS.registerComponentType("applicator",
             b -> b.persistent(ApplicatorData.CODEC).networkSynchronized(ApplicatorData.STREAM_CODEC));
-    public static final DeferredItem<ApplicatorItem> APPLICATOR = ITEMS.registerItem("swatch_applicator", ApplicatorItem::new, new Item.Properties().stacksTo(1));
+    public static final DeferredItem<ApplicatorItem> APPLICATOR = ITEMS.registerItem("swatch_applicator", ApplicatorItem::new, p -> p.stacksTo(1));
 
-    public static final DeferredBlock<SwatchTerminalBlock> TERMINAL = BLOCKS.registerBlock("swatch_terminal", SwatchTerminalBlock::new, SwatchTerminalBlock.PROPERTIES);
-    public static final DeferredBlock<SwatchTerminalBlock> THEME_TERMINAL = BLOCKS.registerBlock("theme_terminal", SwatchTerminalBlock::new, SwatchTerminalBlock.PROPERTIES);
-    public static final DeferredItem<BlockItem> TERMINAL_ITEM = ITEMS.registerSimpleBlockItem(TERMINAL, new Item.Properties());
-    public static final DeferredItem<BlockItem> THEME_TERMINAL_ITEM = ITEMS.registerSimpleBlockItem(THEME_TERMINAL, new Item.Properties());
+    public static final DeferredBlock<SwatchTerminalBlock> TERMINAL = BLOCKS.registerBlock("swatch_terminal", SwatchTerminalBlock::new, SwatchTerminalBlock::properties);
+    public static final DeferredBlock<SwatchTerminalBlock> THEME_TERMINAL = BLOCKS.registerBlock("theme_terminal", SwatchTerminalBlock::new, SwatchTerminalBlock::properties);
+    public static final DeferredItem<BlockItem> TERMINAL_ITEM = ITEMS.registerSimpleBlockItem(TERMINAL);
+    public static final DeferredItem<BlockItem> THEME_TERMINAL_ITEM = ITEMS.registerSimpleBlockItem(THEME_TERMINAL);
     /** Both terminals share one block entity; the block decides which screen opens. */
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SwatchTerminalBlockEntity>> TERMINAL_BE = BLOCK_ENTITIES.register("swatch_terminal",
-            () -> BlockEntityType.Builder.of(SwatchTerminalBlockEntity::new, TERMINAL.get(), THEME_TERMINAL.get()).build(null));
+            () -> new BlockEntityType<>(SwatchTerminalBlockEntity::new, TERMINAL.get(), THEME_TERMINAL.get()));
     public static final DeferredHolder<MenuType<?>, MenuType<SwatchMenu>> TERMINAL_MENU = MENUS.register("swatch_terminal",
             () -> IMenuTypeExtension.create((id, inv, buf) -> new SwatchMenu(AppliedSwatches.TERMINAL_MENU.get(), id, inv)));
     public static final DeferredHolder<MenuType<?>, MenuType<SwatchMenu>> THEME_MENU = MENUS.register("theme_terminal",
@@ -77,16 +77,18 @@ public class AppliedSwatches {
         modBus.addListener(AppliedSwatches::registerCaps);
         modBus.addListener(AppliedSwatches::registerPayloads);
         modBus.addListener(AppliedSwatches::creativeTabs);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.OnDatapackSyncEvent e) ->
+                e.sendRecipes(net.minecraft.world.item.crafting.RecipeType.CRAFTING, net.minecraft.world.item.crafting.RecipeType.STONECUTTING));
         LOGGER.info("{} loaded", MODID);
     }
 
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, path);
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(MODID, path);
     }
 
     private static void registerCaps(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST, TERMINAL_BE.get(), (be, ctx) -> be);
-        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, TERMINAL_BE.get(), (be, side) -> be.output());
+        event.registerBlockEntity(Capabilities.Item.BLOCK, TERMINAL_BE.get(), (be, side) -> be.output());
     }
 
     private static void creativeTabs(BuildCreativeModeTabContentsEvent event) {
@@ -145,13 +147,13 @@ public class AppliedSwatches {
         for (int i = 0; target.isEmpty() && i < player.getInventory().getContainerSize(); i++)
             if (player.getInventory().getItem(i).is(APPLICATOR.get())) target = player.getInventory().getItem(i);
         if (target.isEmpty()) {
-            player.displayClientMessage(Component.translatable("gui.appliedswatches.no_applicator").withStyle(ChatFormatting.RED), false);
+            player.sendSystemMessage(Component.translatable("gui.appliedswatches.no_applicator").withStyle(ChatFormatting.RED));
             return;
         }
         if (blocks.isEmpty()) return;
         ApplicatorData old = ApplicatorItem.data(target);
         target.set(APPLICATOR_DATA.get(), new ApplicatorData(blocks, 0, p.name(), java.util.Optional.of(link), old.mode(), old.size()));
-        player.displayClientMessage(Component.translatable("gui.appliedswatches.applicator_loaded", blocks.size(), p.name()).withStyle(ChatFormatting.GREEN), false);
+        player.sendSystemMessage(Component.translatable("gui.appliedswatches.applicator_loaded", blocks.size(), p.name()).withStyle(ChatFormatting.GREEN));
     }
 
     private static SwatchMenu openMenu(IPayloadContext ctx) {

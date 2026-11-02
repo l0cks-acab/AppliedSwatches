@@ -13,12 +13,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Handheld placer. A terminal loads a palette into it and links it; right-click places the selected block straight
@@ -47,23 +48,22 @@ public class ApplicatorItem extends Item {
     public static void cycle(Player player, ItemStack stack, int dir) {
         ApplicatorData d = data(stack);
         if (d.blocks().isEmpty()) {
-            player.displayClientMessage(Component.translatable("item.appliedswatches.swatch_applicator.empty").withStyle(ChatFormatting.RED), true);
+            player.sendOverlayMessage(Component.translatable("item.appliedswatches.swatch_applicator.empty").withStyle(ChatFormatting.RED));
             return;
         }
         d = d.cycle(dir);
         stack.set(AppliedSwatches.APPLICATOR_DATA.get(), d);
-        Component what = d.selectedBlock().<Component>map(i -> i.getDescription())
+        Component what = d.selectedBlock().<Component>map(i -> i.getName(i.getDefaultInstance()))
                 .orElse(Component.translatable("item.appliedswatches.swatch_applicator.random"));
         String pos = d.selected() == ApplicatorData.RANDOM ? "*" : (d.selected() + 1) + "/" + d.blocks().size();
-        player.displayClientMessage(Component.translatable("item.appliedswatches.swatch_applicator.selected", what, pos), true);
+        player.sendOverlayMessage(Component.translatable("item.appliedswatches.swatch_applicator.selected", what, pos));
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        ItemStack stack = player.getItemInHand(hand);
-        if (!player.isSecondaryUseActive()) return InteractionResultHolder.pass(stack);
-        if (level.isClientSide) ClientBridge.openApplicator(hand);
-        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        if (!player.isSecondaryUseActive()) return InteractionResult.PASS;
+        if (level.isClientSide()) ClientBridge.openApplicator(hand);
+        return InteractionResult.SUCCESS;
     }
 
     @Override
@@ -71,10 +71,10 @@ public class ApplicatorItem extends Item {
         Player player = ctx.getPlayer();
         if (player == null) return InteractionResult.PASS;
         if (player.isSecondaryUseActive()) {
-            if (ctx.getLevel().isClientSide) ClientBridge.openApplicator(ctx.getHand());
-            return InteractionResult.sidedSuccess(ctx.getLevel().isClientSide);
+            if (ctx.getLevel().isClientSide()) ClientBridge.openApplicator(ctx.getHand());
+            return InteractionResult.SUCCESS;
         }
-        if (ctx.getLevel().isClientSide) return InteractionResult.SUCCESS;
+        if (ctx.getLevel().isClientSide()) return InteractionResult.SUCCESS;
         return place((ServerPlayer) player, ctx);
     }
 
@@ -131,7 +131,7 @@ public class ApplicatorItem extends Item {
         }
         if (placed == 0) return outOfStock || targets.size() == 1 ? fail(player, "none_stored") : InteractionResult.FAIL;
         if (targets.size() > 1)
-            player.displayClientMessage(Component.translatable("item.appliedswatches.swatch_applicator.placed", placed, targets.size()), true);
+            player.sendOverlayMessage(Component.translatable("item.appliedswatches.swatch_applicator.placed", placed, targets.size()));
         return InteractionResult.CONSUME;
     }
 
@@ -147,7 +147,7 @@ public class ApplicatorItem extends Item {
             fail(player, "out_of_range");
             return null;
         }
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = player.level();
         if (!level.isLoaded(link.pos()) || !(level.getBlockEntity(link.pos()) instanceof SwatchTerminalBlockEntity be)) {
             fail(player, "unlinked");
             return null;
@@ -156,7 +156,7 @@ public class ApplicatorItem extends Item {
     }
 
     private static InteractionResult fail(Player player, String why) {
-        player.displayClientMessage(Component.translatable("item.appliedswatches.swatch_applicator." + why).withStyle(ChatFormatting.RED), true);
+        player.sendOverlayMessage(Component.translatable("item.appliedswatches.swatch_applicator." + why).withStyle(ChatFormatting.RED));
         return InteractionResult.FAIL;
     }
 
@@ -170,21 +170,21 @@ public class ApplicatorItem extends Item {
     public Component getName(ItemStack stack) {
         ApplicatorData d = data(stack);
         if (d.blocks().isEmpty()) return super.getName(stack);
-        Component what = d.selectedBlock().<Component>map(Item::getDescription)
+        Component what = d.selectedBlock().<Component>map(i -> i.getName(i.getDefaultInstance()))
                 .orElse(Component.translatable("item.appliedswatches.swatch_applicator.random"));
         return Component.translatable("item.appliedswatches.swatch_applicator.named", super.getName(stack), what);
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> tip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, TooltipContext ctx, TooltipDisplay display, Consumer<Component> tip, TooltipFlag flag) {
         ApplicatorData d = data(stack);
         if (d.blocks().isEmpty()) {
-            tip.add(Component.translatable("item.appliedswatches.swatch_applicator.tip").withStyle(ChatFormatting.GRAY));
+            tip.accept(Component.translatable("item.appliedswatches.swatch_applicator.tip").withStyle(ChatFormatting.GRAY));
             return;
         }
-        tip.add(Component.translatable("item.appliedswatches.swatch_applicator.palette", d.name(), d.blocks().size()).withStyle(ChatFormatting.GRAY));
-        d.link().ifPresent(l -> tip.add(Component.translatable("item.appliedswatches.swatch_applicator.linked",
+        tip.accept(Component.translatable("item.appliedswatches.swatch_applicator.palette", d.name(), d.blocks().size()).withStyle(ChatFormatting.GRAY));
+        d.link().ifPresent(l -> tip.accept(Component.translatable("item.appliedswatches.swatch_applicator.linked",
                 l.pos().getX(), l.pos().getY(), l.pos().getZ()).withStyle(ChatFormatting.DARK_GRAY)));
-        tip.add(Component.translatable("item.appliedswatches.swatch_applicator.controls").withStyle(ChatFormatting.DARK_AQUA));
+        tip.accept(Component.translatable("item.appliedswatches.swatch_applicator.controls").withStyle(ChatFormatting.DARK_AQUA));
     }
 }

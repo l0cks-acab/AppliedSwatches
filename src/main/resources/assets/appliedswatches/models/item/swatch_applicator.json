@@ -1,5 +1,4 @@
 {
-  "parent": "minecraft:builtin/entity",
   "gui_light": "front",
   "textures": {
     "particle": "appliedswatches:item/swatch_applicator"
@@ -124,5 +123,6 @@
         0.7
       ]
     }
-  }
+  },
+  "parent": "appliedswatches:item/swatch_applicator_base"
 }

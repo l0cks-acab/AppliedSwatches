@@ -1,18 +1,20 @@
 package com.lach.appliedswatches.client;
 
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import com.lach.appliedswatches.ApplicatorData;
 import com.lach.appliedswatches.ApplicatorItem;
 import com.lach.appliedswatches.PlaceMode;
 import com.lach.appliedswatches.net.ApplicatorConfigPayload;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,7 +91,7 @@ public class ApplicatorScreen extends Screen {
 
     private void sync() {
         refreshButtons();
-        PacketDistributor.sendToServer(new ApplicatorConfigPayload(hand == InteractionHand.OFF_HAND, selected, mode, size));
+        ClientPacketDistributor.sendToServer(new ApplicatorConfigPayload(hand == InteractionHand.OFF_HAND, selected, mode, size));
     }
 
     private Component sizeLabel() {
@@ -102,19 +104,19 @@ public class ApplicatorScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics g, int mx, int my, float partial) {
-        super.renderBackground(g, mx, my, partial);
+    public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float partial) {
+        super.extractBackground(g, mx, my, partial);
         g.fill(left, top, left + W, top + h, 0xFF2B2F36);
         g.fill(left + 1, top + 1, left + W - 1, top + h - 1, 0xFF3C424B);
         g.fill(left + 1, top + 1, left + W - 1, top + 2, 0xFF59616D);
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float partial) {
-        super.render(g, mx, my, partial);
-        g.drawString(font, title, left + 8, top + 7, 0xFFE4E8EE, false);
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float partial) {
+        super.extractRenderState(g, mx, my, partial);
+        g.text(font, title, left + 8, top + 7, 0xFFE4E8EE, false);
         if (!paletteName.isEmpty())
-            g.drawString(font, font.plainSubstrByWidth(paletteName, W - 16), left + 8, top + 18, 0xFF9AA3AF, false);
+            g.text(font, font.plainSubstrByWidth(paletteName, W - 16), left + 8, top + 18, 0xFF9AA3AF, false);
 
         int gx = left + 8, gy = top + gridY;
         int hover = cellAt(mx, my);
@@ -124,24 +126,24 @@ public class ApplicatorScreen extends Screen {
             boolean sel = random ? selected == ApplicatorData.RANDOM : selected == i;
             g.fill(cx, cy, cx + 18, cy + 18, sel ? PURPLE : 0xFF1E2126);
             g.fill(cx + 1, cy + 1, cx + 17, cy + 17, i == hover ? 0xFF4A5A86 : 0xFF262A30);
-            if (random) g.drawCenteredString(font, "?", cx + 9, cy + 5, sel ? 0xFFE0D0FF : 0xFFB8C0CC);
-            else g.renderItem(new ItemStack(blocks.get(i)), cx + 1, cy + 1);
+            if (random) g.centeredText(font, "?", cx + 9, cy + 5, sel ? 0xFFE0D0FF : 0xFFB8C0CC);
+            else g.item(new ItemStack(blocks.get(i)), cx + 1, cy + 1);
         }
         if (blocks.isEmpty())
-            g.drawString(font, Component.translatable("item.appliedswatches.swatch_applicator.tip"), gx + 22, gy + 5, 0xFF9AA3AF, false);
+            g.text(font, Component.translatable("item.appliedswatches.swatch_applicator.tip"), gx + 22, gy + 5, 0xFF9AA3AF, false);
 
-        g.drawCenteredString(font, sizeLabel(), left + W / 2, top + modeY + 26, 0xFFE4E8EE);
+        g.centeredText(font, sizeLabel(), left + W / 2, top + modeY + 26, 0xFFE4E8EE);
         Component hint = Component.translatable(mode.key() + ".tip");
         int y = top + modeY + 46;
         for (var line : font.split(hint, W - 16)) {
-            g.drawString(font, line, left + 8, y, 0xFF9AA3AF, false);
+            g.text(font, line, left + 8, y, 0xFF9AA3AF, false);
             y += 10;
         }
 
         if (hover >= 0) {
             Component tip = hover == blocks.size() ? Component.translatable("item.appliedswatches.swatch_applicator.random")
                     : new ItemStack(blocks.get(hover)).getHoverName();
-            g.renderTooltip(font, tip.copy().withStyle(ChatFormatting.WHITE), mx, my);
+            g.setTooltipForNextFrame(font, tip.copy().withStyle(ChatFormatting.WHITE), mx, my);
         }
     }
 
@@ -153,23 +155,26 @@ public class ApplicatorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mx = event.x(), my = event.y();
+        int button = event.button();
         int i = cellAt(mx, my);
         if (button == 0 && i >= 0) {
             selected = i == blocks.size() ? ApplicatorData.RANDOM : i;
             sync();
             return true;
         }
-        return super.mouseClicked(mx, my, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean keyPressed(int key, int scan, int mods) {
-        if (minecraft != null && minecraft.options.keyInventory.matches(key, scan)) {
+    public boolean keyPressed(KeyEvent event) {
+        int key = event.key();
+        if (minecraft != null && minecraft.options.keyInventory.matches(event)) {
             onClose();
             return true;
         }
-        return super.keyPressed(key, scan, mods);
+        return super.keyPressed(event);
     }
 
     @Override

@@ -1,0 +1,47 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
+      {
+        "when": [
+          "gui"
+        ],
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "appliedswatches:item/swatch_applicator"
+            },
+            {
+              "type": "minecraft:special",
+              "base": "appliedswatches:item/swatch_applicator",
+              "model": {
+                "type": "appliedswatches:applicator",
+                "hologram": false
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:composite",
+      "models": [
+        {
+          "type": "minecraft:model",
+          "model": "appliedswatches:item/swatch_applicator"
+        },
+        {
+          "type": "minecraft:special",
+          "base": "appliedswatches:item/swatch_applicator",
+          "model": {
+            "type": "appliedswatches:applicator",
+            "hologram": true
+          }
+        }
+      ]
+    }
+  }
+}

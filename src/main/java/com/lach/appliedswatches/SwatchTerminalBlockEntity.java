@@ -9,8 +9,6 @@ import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.security.IActionHost;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -18,7 +16,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 
 public class SwatchTerminalBlockEntity extends BlockEntity implements IInWorldGridNodeHost, IActionHost, MenuProvider {
@@ -28,19 +27,14 @@ public class SwatchTerminalBlockEntity extends BlockEntity implements IInWorldGr
             .setFlags(GridFlags.REQUIRE_CHANNEL)
             .setInWorldNode(true)
             .setTagName("node");
-    private final ItemStackHandler output = new ItemStackHandler(SLOTS) {
-        @Override
-        protected void onContentsChanged(int slot) {
-            setChanged();
-        }
-    };
+    private final OutputHandler output = new OutputHandler(SLOTS, this::setChanged);
 
     public SwatchTerminalBlockEntity(BlockPos pos, BlockState state) {
         super(AppliedSwatches.TERMINAL_BE.get(), pos, state);
         node.setVisualRepresentation(AppliedSwatches.TERMINAL_ITEM.get());
     }
 
-    public ItemStackHandler output() {
+    public OutputHandler output() {
         return output;
     }
 
@@ -55,7 +49,7 @@ public class SwatchTerminalBlockEntity extends BlockEntity implements IInWorldGr
     @Override
     public void onLoad() {
         super.onLoad();
-        if (level != null && !level.isClientSide) GridHelper.onFirstTick(this, be -> {
+        if (level != null && !level.isClientSide()) GridHelper.onFirstTick(this, be -> {
             be.node.setIdlePowerUsage(be.getBlockState().is(AppliedSwatches.THEME_TERMINAL.get())
                     ? Config.THEME_IDLE_POWER.get() : Config.SWATCH_IDLE_POWER.get());
             be.node.create(be.level, be.worldPosition);
@@ -85,17 +79,23 @@ public class SwatchTerminalBlockEntity extends BlockEntity implements IInWorldGr
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider regs) {
-        super.saveAdditional(tag, regs);
-        node.saveToNBT(tag);
-        tag.put("output", output.serializeNBT(regs));
+    protected void saveAdditional(ValueOutput out) {
+        super.saveAdditional(out);
+        node.serialize(out);
+        output.serialize(out.child("output"));
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider regs) {
-        super.loadAdditional(tag, regs);
-        node.loadFromNBT(tag);
-        if (tag.contains("output")) output.deserializeNBT(regs, tag.getCompound("output"));
+    protected void loadAdditional(ValueInput in) {
+        super.loadAdditional(in);
+        node.deserialize(in);
+        in.child("output").ifPresent(output::deserialize);
+    }
+
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        super.preRemoveSideEffects(pos, state);
+        if (level != null) for (int i = 0; i < output.size(); i++) net.minecraft.world.level.block.Block.popResource(level, pos, output.getStack(i));
     }
 
     @Override

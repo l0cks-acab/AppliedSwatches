@@ -10,7 +10,8 @@ import com.lach.appliedswatches.net.RefreshPayload;
 import com.lach.appliedswatches.net.ReturnPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -25,7 +26,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -72,9 +73,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     private int menuX, menuY, menuW;
 
     protected TerminalScreen(SwatchMenu menu, Inventory inv, Component title) {
-        super(menu, inv, title);
-        imageWidth = 358;
-        imageHeight = SwatchMenu.INV_Y + 83;
+        super(menu, inv, title, 358, SwatchMenu.INV_Y + 83);
         inventoryLabelX = SwatchMenu.INV_X;
         inventoryLabelY = SwatchMenu.INV_Y - 11;
     }
@@ -99,7 +98,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         int x = leftPos, y = topPos;
         exportBtn = addRenderableWidget(Button.builder(Component.translatable("gui.appliedswatches.export"), b -> export())
                 .bounds(x + GRID_X, y + 113, 60, 16).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.appliedswatches.return"), b -> PacketDistributor.sendToServer(ReturnPayload.INSTANCE))
+        addRenderableWidget(Button.builder(Component.translatable("gui.appliedswatches.return"), b -> ClientPacketDistributor.sendToServer(ReturnPayload.INSTANCE))
                 .tooltip(Tooltip.create(Component.translatable("gui.appliedswatches.return.tip")))
                 .bounds(x + GRID_X + 62, y + 113, 49, 16).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.appliedswatches.refresh"), b -> refresh())
@@ -116,7 +115,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     protected void addSettings(int x, int y, int w) {
         addToleranceSlider(x, y, w);
         perItemBtn = addRenderableWidget(Button.builder(Component.empty(), b -> {
-            perItemIdx = (perItemIdx + (hasShiftDown() ? PER_ITEM.length - 1 : 1)) % PER_ITEM.length;
+            perItemIdx = (perItemIdx + (minecraft.hasShiftDown() ? PER_ITEM.length - 1 : 1)) % PER_ITEM.length;
             update();
         }).bounds(x, y + 17, w, 14).build());
         fullBtn = addRenderableWidget(Button.builder(Component.empty(), b -> {
@@ -136,13 +135,13 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         ItemStack icon = new ItemStack(AppliedSwatches.APPLICATOR.get());
         applicatorBtn = addRenderableWidget(new Button(x + 18, y, 16, 16, Component.empty(), b -> loadApplicator(), s -> s.get()) {
             @Override
-            protected void renderWidget(GuiGraphics g, int mx, int my, float partial) {
-                super.renderWidget(g, mx, my, partial);
-                g.pose().pushPose();
-                g.pose().translate(getX() + 1, getY() + 1, 0);
-                g.pose().scale(14 / 16f, 14 / 16f, 1);
-                g.renderItem(icon, 0, 0);
-                g.pose().popPose();
+            protected void extractContents(GuiGraphicsExtractor g, int mx, int my, float partial) {
+                extractDefaultSprite(g);
+                g.pose().pushMatrix();
+                g.pose().translate(getX() + 1, getY() + 1);
+                g.pose().scale(14 / 16f, 14 / 16f);
+                g.item(icon, 0, 0);
+                g.pose().popMatrix();
             }
         });
         applicatorBtn.setTooltip(Tooltip.create(Component.translatable("gui.appliedswatches.load_applicator")));
@@ -153,14 +152,14 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             update();
         }, s -> s.get()) {
             @Override
-            protected void renderWidget(GuiGraphics g, int mx, int my, float partial) {
-                super.renderWidget(g, mx, my, partial);
-                if (showCraftable) g.renderOutline(getX(), getY(), width, height, 0xFF6AF07A);
-                g.pose().pushPose();
-                g.pose().translate(getX() + 1, getY() + 1, 0);
-                g.pose().scale(14 / 16f, 14 / 16f, 1);
-                g.renderItem(table, 0, 0);
-                g.pose().popPose();
+            protected void extractContents(GuiGraphicsExtractor g, int mx, int my, float partial) {
+                extractDefaultSprite(g);
+                if (showCraftable) g.outline(getX(), getY(), width, height, 0xFF6AF07A);
+                g.pose().pushMatrix();
+                g.pose().translate(getX() + 1, getY() + 1);
+                g.pose().scale(14 / 16f, 14 / 16f);
+                g.item(table, 0, 0);
+                g.pose().popMatrix();
             }
         });
         updateCraftTooltip();
@@ -180,23 +179,33 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         Set<Item> out = new HashSet<>();
         var mc = Minecraft.getInstance();
         if (mc.getConnection() == null || mc.level == null) return out;
-        var access = mc.level.registryAccess();
-        for (RecipeHolder<?> h : mc.getConnection().getRecipeManager().getRecipes()) {
+        if (recipes == null) return out;
+        var ctx = net.minecraft.world.item.crafting.display.SlotDisplayContext.fromLevel(mc.level);
+        for (RecipeHolder<?> h : recipes.values()) {
             var type = h.value().getType();
             if (type != RecipeType.CRAFTING && type != RecipeType.STONECUTTING) continue;
-            ItemStack result = h.value().getResultItem(access);
-            if (!result.isEmpty() && result.getItem() instanceof BlockItem && result.getComponentsPatch().isEmpty()) out.add(result.getItem());
+            for (var d : h.value().display()) {
+                ItemStack result = d.result().resolveForFirstStack(ctx);
+                if (!result.isEmpty() && result.getItem() instanceof BlockItem && result.getComponentsPatch().isEmpty()) out.add(result.getItem());
+            }
         }
         return craftableCache = out;
     }
 
     /** Recipes change on /reload or a new server. */
+    private static net.minecraft.world.item.crafting.RecipeMap recipes;
+
+    public static void setRecipes(net.minecraft.world.item.crafting.RecipeMap map) {
+        recipes = map;
+        craftableCache = null;
+    }
+
     public static void clearCraftableCache() {
         craftableCache = null;
     }
 
     private void loadApplicator() {
-        if (!exports.isEmpty()) PacketDistributor.sendToServer(new LoadApplicatorPayload(List.copyOf(exports), paletteName()));
+        if (!exports.isEmpty()) ClientPacketDistributor.sendToServer(new LoadApplicatorPayload(List.copyOf(exports), paletteName()));
     }
 
     private void setFileMenuOpen(boolean open) {
@@ -211,19 +220,17 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         return i < fileMenu.size() ? i : -1;
     }
 
-    private void renderFileMenu(GuiGraphics g, int mx, int my) {
+    private void renderFileMenu(GuiGraphicsExtractor g, int mx, int my) {
         if (!fileMenuOpen) return;
         int h = fileMenu.size() * MENU_ROW + 2, hover = menuEntryAt(mx, my);
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 400);
+        g.nextStratum();
         g.fill(menuX - 1, menuY - 1, menuX + menuW + 1, menuY + h + 1, 0xFF15171A);
         g.fill(menuX, menuY, menuX + menuW, menuY + h, 0xFF3C424B);
         for (int i = 0; i < fileMenu.size(); i++) {
             int ry = menuY + 1 + i * MENU_ROW;
             if (i == hover) g.fill(menuX + 1, ry, menuX + menuW - 1, ry + MENU_ROW, 0xFF4A5A86);
-            g.drawString(font, fileMenu.get(i).label(), menuX + 6, ry + 3, 0xFFE4E8EE, false);
+            g.text(font, fileMenu.get(i).label(), menuX + 6, ry + 3, 0xFFE4E8EE, false);
         }
-        g.pose().popPose();
     }
 
     /** Moves the tolerance slider to the current value, e.g. after loading a file. */
@@ -253,7 +260,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     }
 
     protected void refresh() {
-        PacketDistributor.sendToServer(RefreshPayload.INSTANCE);
+        ClientPacketDistributor.sendToServer(RefreshPayload.INSTANCE);
     }
 
     public void setCandidates(CandidatesPayload p) {
@@ -355,7 +362,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     }
 
     private void export() {
-        if (!exports.isEmpty()) PacketDistributor.sendToServer(new ExportPayload(List.copyOf(exports), perItem()));
+        if (!exports.isEmpty()) ClientPacketDistributor.sendToServer(new ExportPayload(List.copyOf(exports), perItem()));
     }
 
     private int maxScroll() {
@@ -372,7 +379,8 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     }
 
     @Override
-    protected void renderBg(GuiGraphics g, float partial, int mx, int my) {
+    public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float partial) {
+        super.extractBackground(g, mx, my, partial);
         int x = leftPos, y = topPos;
         g.fill(x, y, x + imageWidth, y + imageHeight, 0xFF2B2F36);
         g.fill(x + 1, y + 1, x + imageWidth - 1, y + imageHeight - 1, 0xFF3C424B);
@@ -383,16 +391,16 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     }
 
     /** Draws the subclass's panel background. */
-    protected abstract void renderPanel(GuiGraphics g, int x, int y, int mx, int my);
+    protected abstract void renderPanel(GuiGraphicsExtractor g, int x, int y, int mx, int my);
 
-    private static void slotBg(GuiGraphics g, int x, int y) {
+    private static void slotBg(GuiGraphicsExtractor g, int x, int y) {
         g.fill(x, y, x + 18, y + 18, 0xFF1E2126);
         g.fill(x + 1, y + 1, x + 18, y + 18, 0xFF5E6672);
         g.fill(x + 1, y + 1, x + 17, y + 17, 0xFF262A30);
     }
 
     /** Draws palette swatches in a row. */
-    protected void renderPalette(GuiGraphics g, int x, int y, int w, int h) {
+    protected void renderPalette(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         int n = Math.max(1, palette.length), cw = Math.min(16, (w - 2 * (n - 1)) / n);
         for (int i = 0; i < palette.length; i++) {
             int bx = x + i * (cw + 2);
@@ -401,7 +409,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         }
     }
 
-    private void renderGrid(GuiGraphics g, int x, int y) {
+    private void renderGrid(GuiGraphicsExtractor g, int x, int y) {
         int gx = x + GRID_X, gy = y + GRID_Y;
         g.fill(gx - 1, gy - 1, gx + COLS * CELL + 1, gy + ROWS * CELL + 1, 0xFF15171A);
         g.fill(gx, gy, gx + COLS * CELL, gy + ROWS * CELL, 0xFF23272D);
@@ -411,36 +419,35 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         int ty = gy + (max == 0 ? 0 : (ROWS * CELL - thumb) * scroll / max);
         g.fill(sbx, ty, sbx + 4, ty + thumb, max == 0 ? 0xFF4A515B : 0xFF8A93A0);
         Set<Item> exported = new HashSet<>(exports);
-        for (int i = 0; i < COLS * ROWS; i++) {
-            int idx = scroll * COLS + i;
-            if (idx >= matches.size()) break;
-            Match m = matches.get(idx);
+        int shown = Math.max(0, Math.min(COLS * ROWS, matches.size() - scroll * COLS));
+        for (int i = 0; i < shown; i++) {
+            Match m = matches.get(scroll * COLS + i);
             int cx = gx + (i % COLS) * CELL, cy = gy + (i / COLS) * CELL;
             g.fill(cx + 1, cy + CELL - 3, cx + CELL - 1, cy + CELL - 1, 0xFF000000 | palette[m.swatch()]);
-            g.renderItem(new ItemStack(m.item()), cx + 1, cy);
+            g.item(new ItemStack(m.item()), cx + 1, cy);
+        }
+        // Dimming and badges go over the items.
+        g.nextStratum();
+        for (int i = 0; i < shown; i++) {
+            Match m = matches.get(scroll * COLS + i);
+            int cx = gx + (i % COLS) * CELL, cy = gy + (i / COLS) * CELL;
             if (excluded().contains(m.item())) {
-                g.pose().pushPose();
-                g.pose().translate(0, 0, 200);
                 g.fill(cx, cy, cx + CELL, cy + CELL, 0x80000000);
                 drawSkipMark(g, cx + CELL - 8, cy);
-                g.pose().popPose();
             } else if (!exported.contains(m.item())) {
-                g.pose().pushPose();
-                g.pose().translate(0, 0, 200);
                 g.fill(cx, cy, cx + CELL, cy + CELL, m.craftable() ? 0x50000000 : 0x90000000);
                 if (m.craftable()) drawCraftMark(g, cx + CELL - 8, cy);
-                g.pose().popPose();
             }
         }
         if (matches.isEmpty()) {
             Component msg = Component.translatable(!loaded ? "gui.appliedswatches.loading"
                     : !networkOnline ? "gui.appliedswatches.offline" : "gui.appliedswatches.no_matches");
-            g.drawCenteredString(font, msg, gx + COLS * CELL / 2, gy + ROWS * CELL / 2 - 4, 0xFF9AA3AF);
+            g.centeredText(font, msg, gx + COLS * CELL / 2, gy + ROWS * CELL / 2 - 4, 0xFF9AA3AF);
         }
     }
 
     /** Small green + badge, 7x7, marking a block that isn't stored but has a recipe. */
-    private static void drawCraftMark(GuiGraphics g, int x, int y) {
+    private static void drawCraftMark(GuiGraphicsExtractor g, int x, int y) {
         g.fill(x, y, x + 7, y + 7, 0xFF15171A);
         g.fill(x + 1, y + 1, x + 6, y + 6, 0xFF2F8A3C);
         g.fill(x + 3, y + 2, x + 4, y + 5, 0xFFFFFFFF);
@@ -448,7 +455,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     }
 
     /** Small red x badge, 7x7, marking a skipped block. */
-    private static void drawSkipMark(GuiGraphics g, int x, int y) {
+    private static void drawSkipMark(GuiGraphicsExtractor g, int x, int y) {
         g.fill(x, y, x + 7, y + 7, 0xFF15171A);
         g.fill(x + 1, y + 1, x + 6, y + 6, 0xFFB02424);
         for (int i = 0; i < 3; i++) {
@@ -458,18 +465,18 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     }
 
     @Override
-    protected void renderLabels(GuiGraphics g, int mx, int my) {
-        g.drawString(font, title, 8, 6, 0xFFE4E8EE, false);
+    protected void extractLabels(GuiGraphicsExtractor g, int mx, int my) {
+        g.text(font, title, 8, 6, 0xFFE4E8EE, false);
         Component status = Component.translatable(networkOnline ? "gui.appliedswatches.status" : "gui.appliedswatches.status_offline", matches.size())
                 .withStyle(networkOnline ? ChatFormatting.GREEN : ChatFormatting.RED);
-        g.drawString(font, status, imageWidth - 8 - font.width(status), 6, 0xFFFFFFFF, false);
-        g.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xFFC8CED6, false);
-        g.drawString(font, Component.translatable("gui.appliedswatches.output"), SwatchMenu.OUT_X, inventoryLabelY, 0xFFC8CED6, false);
+        g.text(font, status, imageWidth - 8 - font.width(status), 6, 0xFFFFFFFF, false);
+        g.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xFFC8CED6, false);
+        g.text(font, Component.translatable("gui.appliedswatches.output"), SwatchMenu.OUT_X, inventoryLabelY, 0xFFC8CED6, false);
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float partial) {
-        super.render(g, mx, my, partial);
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float partial) {
+        super.extractRenderState(g, mx, my, partial);
         renderFileMenu(g, mx, my);
         if (menuEntryAt(mx, my) >= 0) return;
         Match m = matchAt(mx, my);
@@ -483,8 +490,8 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             if (m.dist() < 0) tip.add(Component.translatable("gui.appliedswatches.pinned").withStyle(ChatFormatting.GOLD));
             if (!m.craftable()) tip.add(Component.translatable(excluded().contains(m.item()) ? "gui.appliedswatches.click_include" : "gui.appliedswatches.click_exclude")
                     .withStyle(ChatFormatting.DARK_AQUA));
-            g.renderComponentTooltip(font, tip, mx, my);
-        } else renderTooltip(g, mx, my);
+            g.setComponentTooltipForNextFrame(font, tip, mx, my);
+        } else extractTooltip(g, mx, my);
     }
 
     private Match matchAt(double mx, double my) {
@@ -495,7 +502,9 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mx = event.x(), my = event.y();
+        int button = event.button();
         if (fileMenuOpen) {
             int i = menuEntryAt(mx, my);
             setFileMenuOpen(false);
@@ -511,7 +520,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
                 return true;
             }
         }
-        return super.mouseClicked(mx, my, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override

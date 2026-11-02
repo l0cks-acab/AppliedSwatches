@@ -2,8 +2,11 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    { "item": "appliedswatches:swatch_terminal" },
-    { "item": "minecraft:book" }
+    "appliedswatches:swatch_terminal",
+    "minecraft:book"
   ],
-  "result": { "id": "appliedswatches:theme_terminal", "count": 1 }
+  "result": {
+    "id": "appliedswatches:theme_terminal",
+    "count": 1
+  }
 }

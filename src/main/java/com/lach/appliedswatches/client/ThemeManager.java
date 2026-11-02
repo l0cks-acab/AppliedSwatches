@@ -2,7 +2,7 @@ package com.lach.appliedswatches.client;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -28,7 +28,7 @@ public final class ThemeManager {
 
     public static List<Theme> load() {
         List<Theme> builtin = new ArrayList<>();
-        Map<ResourceLocation, net.minecraft.server.packs.resources.Resource> found =
+        Map<Identifier, net.minecraft.server.packs.resources.Resource> found =
                 Minecraft.getInstance().getResourceManager().listResources("themes", rl -> rl.getPath().endsWith(".json"));
         for (var e : found.entrySet()) {
             try (Reader r = e.getValue().openAsReader()) {

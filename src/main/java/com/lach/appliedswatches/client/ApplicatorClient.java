@@ -6,9 +6,10 @@ import com.lach.appliedswatches.ApplicatorItem;
 import com.lach.appliedswatches.PlaceMode;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.ShapeRenderer;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
@@ -19,15 +20,12 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import java.util.List;
 import com.lach.appliedswatches.net.CycleApplicatorPayload;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.client.event.ModelEvent;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
-import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.event.RegisterSpecialModelRendererEvent;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 /** Applicator rendering and sneak + scroll selection. */
 @EventBusSubscriber(modid = AppliedSwatches.MODID, value = Dist.CLIENT)
@@ -36,32 +34,18 @@ public final class ApplicatorClient {
     }
 
     @SubscribeEvent
-    static void recipes(net.neoforged.neoforge.client.event.RecipesUpdatedEvent event) {
-        TerminalScreen.clearCraftableCache();
+    static void recipes(net.neoforged.neoforge.client.event.RecipesReceivedEvent event) {
+        TerminalScreen.setRecipes(event.getRecipeMap());
     }
 
     @SubscribeEvent
-    static void models(ModelEvent.RegisterAdditional event) {
-        event.register(ApplicatorRenderer.BASE);
-    }
-
-    @SubscribeEvent
-    static void extensions(RegisterClientExtensionsEvent event) {
-        event.registerItem(new IClientItemExtensions() {
-            private ApplicatorRenderer renderer;
-
-            @Override
-            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                if (renderer == null) renderer = new ApplicatorRenderer();
-                return renderer;
-            }
-        }, AppliedSwatches.APPLICATOR.get());
+    static void specialRenderers(RegisterSpecialModelRendererEvent event) {
+        event.register(AppliedSwatches.id("applicator"), ApplicatorRenderer.Unbaked.MAP_CODEC);
     }
 
     /** Outlines where the next click will place blocks. */
     @SubscribeEvent
-    static void preview(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
+    static void preview(RenderLevelStageEvent.AfterTranslucentBlocks event) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null || !(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) return;
         ItemStack held = mc.player.getMainHandItem();
@@ -71,16 +55,14 @@ public final class ApplicatorClient {
         if (d.blocks().isEmpty() || d.mode() == PlaceMode.SINGLE) return;
         List<BlockPos> targets = d.mode().targets(mc.level, hit.getBlockPos(), hit.getDirection(), d.size());
         if (targets.isEmpty()) return;
-        Vec3 cam = event.getCamera().getPosition();
+        Vec3 cam = event.getLevelRenderState().cameraRenderState.pos;
         PoseStack pose = event.getPoseStack();
-        pose.pushPose();
-        pose.translate(-cam.x, -cam.y, -cam.z);
+        if (pose == null) return;
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-        VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        VertexConsumer lines = buffers.getBuffer(RenderTypes.lines());
         for (BlockPos p : targets)
-            LevelRenderer.renderLineBox(pose, lines, new AABB(p).deflate(0.04), 0.72f, 0.5f, 1f, 0.9f);
-        buffers.endBatch(RenderType.lines());
-        pose.popPose();
+            ShapeRenderer.renderShape(pose, lines, Shapes.create(new AABB(p).deflate(0.04)), -cam.x, -cam.y, -cam.z, 0xE6B880FF, 2f);
+        buffers.endBatch(RenderTypes.lines());
     }
 
     @SubscribeEvent
@@ -88,7 +70,7 @@ public final class ApplicatorClient {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.screen != null || !mc.player.isShiftKeyDown() || event.getScrollDeltaY() == 0) return;
         if (!(mc.player.getMainHandItem().getItem() instanceof ApplicatorItem)) return;
-        PacketDistributor.sendToServer(new CycleApplicatorPayload(event.getScrollDeltaY() > 0 ? -1 : 1));
+        ClientPacketDistributor.sendToServer(new CycleApplicatorPayload(event.getScrollDeltaY() > 0 ? -1 : 1));
         event.setCanceled(true);
     }
 }

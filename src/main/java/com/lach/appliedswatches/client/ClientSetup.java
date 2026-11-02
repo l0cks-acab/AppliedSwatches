@@ -5,7 +5,7 @@ import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 @EventBusSubscriber(modid = AppliedSwatches.MODID, value = Dist.CLIENT)
@@ -20,7 +20,7 @@ public final class ClientSetup {
     }
 
     @SubscribeEvent
-    static void reload(RegisterClientReloadListenersEvent event) {
-        event.registerReloadListener((ResourceManagerReloadListener) rm -> BlockColorCache.clear());
+    static void reload(AddClientReloadListenersEvent event) {
+        event.addListener(AppliedSwatches.id("block_colors"), (ResourceManagerReloadListener) rm -> BlockColorCache.clear());
     }
 }

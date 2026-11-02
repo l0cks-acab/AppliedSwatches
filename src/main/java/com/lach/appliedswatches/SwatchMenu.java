@@ -16,9 +16,8 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
-import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.items.SlotItemHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.ResourceHandlerSlot;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +36,7 @@ public class SwatchMenu extends AbstractContainerMenu {
 
     /** Client side. */
     public SwatchMenu(MenuType<?> type, int id, Inventory inv) {
-        this(type, id, inv, null, new ItemStackHandler(SwatchTerminalBlockEntity.SLOTS), ContainerLevelAccess.NULL, DataSlot.standalone());
+        this(type, id, inv, null, new OutputHandler(SwatchTerminalBlockEntity.SLOTS, () -> {}), ContainerLevelAccess.NULL, DataSlot.standalone());
     }
 
     /** Server side. */
@@ -54,14 +53,14 @@ public class SwatchMenu extends AbstractContainerMenu {
         });
     }
 
-    private SwatchMenu(MenuType<?> type, int id, Inventory inv, @Nullable SwatchTerminalBlockEntity be, ItemStackHandler output, ContainerLevelAccess access, DataSlot online) {
+    private SwatchMenu(MenuType<?> type, int id, Inventory inv, @Nullable SwatchTerminalBlockEntity be, OutputHandler output, ContainerLevelAccess access, DataSlot online) {
         super(type, id);
         this.be = be;
         this.player = inv.player;
         this.access = access;
         this.online = addDataSlot(online);
         for (int r = 0; r < 3; r++)
-            for (int c = 0; c < 9; c++) addSlot(new SlotItemHandler(output, c + r * 9, OUT_X + c * 18, OUT_Y + r * 18));
+            for (int c = 0; c < 9; c++) addSlot(new ResourceHandlerSlot(output, output::set, c + r * 9, OUT_X + c * 18, OUT_Y + r * 18));
         for (int r = 0; r < 3; r++)
             for (int c = 0; c < 9; c++) addSlot(new Slot(inv, c + r * 9 + 9, INV_X + c * 18, INV_Y + r * 18));
         for (int c = 0; c < 9; c++) addSlot(new Slot(inv, c, INV_X + c * 18, INV_Y + 58));
@@ -105,18 +104,18 @@ public class SwatchMenu extends AbstractContainerMenu {
         var storage = grid.getStorageService().getInventory();
         var energy = grid.getEnergyService();
         var src = IActionSource.ofPlayer(player, be);
-        ItemStackHandler out = be.output();
+        OutputHandler out = be.output();
         for (Item item : items) {
             if (!(item instanceof BlockItem)) continue;
             AEItemKey key = AEItemKey.of(item);
-            int want = Math.min(perItem, item.getDefaultMaxStackSize() * out.getSlots());
-            ItemStack left = ItemHandlerHelper.insertItemStacked(out, key.toStack(want), true);
-            int fits = want - left.getCount();
+            ItemResource res = ItemResource.of(item);
+            int want = Math.min(perItem, item.getDefaultMaxStackSize() * out.size());
+            int fits = out.insertStacked(res, want, true);
             if (fits <= 0) continue;
             long got = StorageHelper.poweredExtraction(energy, storage, key, fits, src);
             if (got <= 0) continue;
-            ItemStack rest = ItemHandlerHelper.insertItemStacked(out, key.toStack((int) got), false);
-            if (!rest.isEmpty()) StorageHelper.poweredInsert(energy, storage, key, rest.getCount(), src);
+            int rest = (int) got - out.insertStacked(res, (int) got, false);
+            if (rest > 0) StorageHelper.poweredInsert(energy, storage, key, rest, src);
         }
     }
 
@@ -127,13 +126,13 @@ public class SwatchMenu extends AbstractContainerMenu {
         var storage = grid.getStorageService().getInventory();
         var energy = grid.getEnergyService();
         var src = IActionSource.ofPlayer(player, be);
-        ItemStackHandler out = be.output();
-        for (int i = 0; i < out.getSlots(); i++) {
-            ItemStack s = out.getStackInSlot(i);
+        OutputHandler out = be.output();
+        for (int i = 0; i < out.size(); i++) {
+            ItemStack s = out.getStack(i);
             AEItemKey key = AEItemKey.of(s);
             if (key == null) continue;
             long put = StorageHelper.poweredInsert(energy, storage, key, s.getCount(), src);
-            if (put > 0) out.extractItem(i, (int) put, false);
+            if (put > 0) out.extract(i, (int) put);
         }
     }
 
@@ -154,6 +153,6 @@ public class SwatchMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         return access.evaluate((level, pos) -> level.getBlockState(pos).getBlock() instanceof SwatchTerminalBlock
-                && player.canInteractWithBlock(pos, 4.0), true);
+                && player.isWithinBlockInteractionRange(pos, 4.0), true);
     }
 }

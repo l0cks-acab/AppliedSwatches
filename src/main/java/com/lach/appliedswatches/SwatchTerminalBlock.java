@@ -19,17 +19,17 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
 public class SwatchTerminalBlock extends BaseEntityBlock {
     public static final MapCodec<SwatchTerminalBlock> CODEC = simpleCodec(SwatchTerminalBlock::new);
-    public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
-    public static final BlockBehaviour.Properties PROPERTIES = BlockBehaviour.Properties.of()
-            .mapColor(MapColor.METAL).strength(2.2f, 11f).sound(SoundType.METAL).requiresCorrectToolForDrops();
+    public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
+    public static BlockBehaviour.Properties properties(BlockBehaviour.Properties p) {
+        return p.mapColor(MapColor.METAL).strength(2.2f, 11f).sound(SoundType.METAL).requiresCorrectToolForDrops();
+    }
 
     public SwatchTerminalBlock(Properties props) {
         super(props);
@@ -69,17 +69,9 @@ public class SwatchTerminalBlock extends BaseEntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide && player instanceof ServerPlayer sp && level.getBlockEntity(pos) instanceof SwatchTerminalBlockEntity be)
+        if (!level.isClientSide() && player instanceof ServerPlayer sp && level.getBlockEntity(pos) instanceof SwatchTerminalBlockEntity be)
             sp.openMenu(be, pos);
-        return InteractionResult.sidedSuccess(level.isClientSide);
+        return InteractionResult.SUCCESS;
     }
 
-    @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
-        if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof SwatchTerminalBlockEntity be) {
-            ItemStackHandler inv = be.output();
-            for (int i = 0; i < inv.getSlots(); i++) popResource(level, pos, inv.getStackInSlot(i));
-        }
-        super.onRemove(state, level, pos, newState, moved);
-    }
 }

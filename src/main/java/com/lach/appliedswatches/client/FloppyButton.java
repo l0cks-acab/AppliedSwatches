@@ -1,6 +1,6 @@
 package com.lach.appliedswatches.client;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -17,11 +17,8 @@ public class FloppyButton extends Button {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mx, int my, float partial) {
-        Component msg = getMessage();
-        setMessage(Component.empty());
-        super.renderWidget(g, mx, my, partial);
-        setMessage(msg);
+    protected void extractContents(GuiGraphicsExtractor g, int mx, int my, float partial) {
+        extractDefaultSprite(g);
         int x = getX() + 3, y = getY() + 3;
         int body = active ? 0xFF3A4FA8 : 0xFF555A66;
         // Body with a clipped top-right corner.

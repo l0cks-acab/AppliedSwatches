@@ -96,6 +96,6 @@ public final class FileDialogs {
     /** Tells the player how a file action went. */
     public static void toast(String key, Object... args) {
         var p = Minecraft.getInstance().player;
-        if (p != null) p.displayClientMessage(Component.translatable(key, args), true);
+        if (p != null) p.sendOverlayMessage(Component.translatable(key, args));
     }
 }
