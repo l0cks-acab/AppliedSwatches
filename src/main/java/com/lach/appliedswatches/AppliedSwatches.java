@@ -55,6 +55,7 @@ public class AppliedSwatches {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<ApplicatorData>> APPLICATOR_DATA = COMPONENTS.registerComponentType("applicator",
             b -> b.persistent(ApplicatorData.CODEC).networkSynchronized(ApplicatorData.STREAM_CODEC));
     public static final DeferredItem<ApplicatorItem> APPLICATOR = ITEMS.registerItem("swatch_applicator", ApplicatorItem::new, new Item.Properties().stacksTo(1));
+    public static final DeferredItem<Item> CREATIVE_CELL = ITEMS.registerSimpleItem("creative_swatch_cell", new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC));
 
     public static final DeferredBlock<SwatchTerminalBlock> TERMINAL = BLOCKS.registerBlock("swatch_terminal", SwatchTerminalBlock::new, SwatchTerminalBlock.PROPERTIES);
     public static final DeferredBlock<SwatchTerminalBlock> THEME_TERMINAL = BLOCKS.registerBlock("theme_terminal", SwatchTerminalBlock::new, SwatchTerminalBlock.PROPERTIES);
@@ -78,6 +79,7 @@ public class AppliedSwatches {
         modBus.addListener(AppliedSwatches::registerCaps);
         modBus.addListener(AppliedSwatches::registerPayloads);
         modBus.addListener(AppliedSwatches::creativeTabs);
+        modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent e) -> e.enqueueWork(() -> appeng.api.storage.StorageCells.addCellHandler(CreativeSwatchCell.HANDLER)));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) -> CraftRequests.tick());
         LOGGER.info("{} loaded", MODID);
     }
@@ -97,6 +99,7 @@ public class AppliedSwatches {
             event.accept(THEME_TERMINAL_ITEM.get());
         } else if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(APPLICATOR.get());
+            event.accept(CREATIVE_CELL.get());
         }
     }
 

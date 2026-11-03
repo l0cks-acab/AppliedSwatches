@@ -31,8 +31,10 @@ import java.util.List;
 /** Draws the applicator's model, then the selected block's texture on its screen. */
 public class ApplicatorRenderer extends BlockEntityWithoutLevelRenderer {
     public static final ModelResourceLocation BASE = ModelResourceLocation.standalone(AppliedSwatches.id("item/swatch_applicator_base"));
-    /** Screen area on the model's top face, in model pixels. */
-    private static final float X0 = 4.5f, X1 = 8.5f, Z0 = 6f, Z1 = 10f, Y = 13.01f;
+    /** Screen area on the head's top face, in model pixels, before the head's tilt. */
+    private static final float X0 = 5.5f, X1 = 10f, Z0 = 5.75f, Z1 = 10.25f, Y = 15.26f;
+    /** Head tilt about z, matching tools/applicator_model.py (HEAD_ANGLE, HEAD_ORIGIN). */
+    private static final float HEAD_ANGLE = 22.5f, HEAD_OX = 8f, HEAD_OY = 13.5f;
 
     public ApplicatorRenderer() {
         super(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
@@ -52,6 +54,8 @@ public class ApplicatorRenderer extends BlockEntityWithoutLevelRenderer {
         int tint = mc.getBlockColors().getColor(state, null, null, 0);
         int rgb = tint == -1 ? 0xFFFFFF : tint;
         float r = (rgb >> 16 & 255) / 255f, g = (rgb >> 8 & 255) / 255f, b = (rgb & 255) / 255f;
+        pose.pushPose();
+        tiltHead(pose);
         Matrix4f m = pose.last().pose();
         VertexConsumer screen = buffers.getBuffer(Sheets.cutoutBlockSheet());
         float x0 = X0 / 16, x1 = X1 / 16, z0 = Z0 / 16, z1 = Z1 / 16, y = Y / 16;
@@ -60,16 +64,25 @@ public class ApplicatorRenderer extends BlockEntityWithoutLevelRenderer {
         screen.addVertex(m, x0, y, z1).setColor(r, g, b, 1).setUv(sprite.getU1(), sprite.getV0()).setOverlay(OverlayTexture.NO_OVERLAY).setLight(full).setNormal(pose.last(), 0, 1, 0);
         screen.addVertex(m, x1, y, z1).setColor(r, g, b, 1).setUv(sprite.getU1(), sprite.getV1()).setOverlay(OverlayTexture.NO_OVERLAY).setLight(full).setNormal(pose.last(), 0, 1, 0);
         screen.addVertex(m, x1, y, z0).setColor(r, g, b, 1).setUv(sprite.getU0(), sprite.getV1()).setOverlay(OverlayTexture.NO_OVERLAY).setLight(full).setNormal(pose.last(), 0, 1, 0);
+        Matrix4f tilted = new Matrix4f(m);
+        pose.popPose();
 
-        if (ctx != ItemDisplayContext.GUI) renderHologram(mc, state, pose, buffers, r, g, b);
+        if (ctx != ItemDisplayContext.GUI) renderHologram(mc, state, pose, tilted, buffers, r, g, b);
+    }
+
+    private static void tiltHead(PoseStack pose) {
+        pose.rotateAround(Axis.ZP.rotationDegrees(HEAD_ANGLE), HEAD_OX / 16, HEAD_OY / 16, 0);
     }
 
     /** A small see-through copy of the block spinning above the screen, with a pale fluix-purple projection cone. */
-    private static void renderHologram(Minecraft mc, BlockState state, PoseStack pose, MultiBufferSource buffers, float r, float g, float b) {
+    private static void renderHologram(Minecraft mc, BlockState state, PoseStack pose, Matrix4f tilted, MultiBufferSource buffers, float r, float g, float b) {
         BakedModel model = mc.getBlockRenderer().getBlockModel(state);
         float t = (System.currentTimeMillis() % 6000L) / 6000f;
         float bob = (float) Math.sin(t * Math.PI * 4) * 0.012f;
-        float cx = (X0 + X1) / 32, cz = (Z0 + Z1) / 32, base = Y / 16 + 0.09f + bob, size = 0.16f;
+        // Screen centre after the tilt; the hologram floats straight up from it.
+        double rad = Math.toRadians(HEAD_ANGLE), dx = (X0 + X1) / 2 - HEAD_OX, dy = Y - HEAD_OY;
+        float cx = (float) (HEAD_OX + dx * Math.cos(rad) - dy * Math.sin(rad)) / 16, cz = (Z0 + Z1) / 32;
+        float base = (float) (HEAD_OY + dx * Math.sin(rad) + dy * Math.cos(rad)) / 16 + 0.12f + bob, size = 0.16f;
 
         // Projection cone: from the screen's corners up to the hologram's base.
         Matrix4f m = pose.last().pose();
@@ -79,8 +92,8 @@ public class ApplicatorRenderer extends BlockEntityWithoutLevelRenderer {
         float[][] hi = {{cx - h, cz - h}, {cx - h, cz + h}, {cx + h, cz + h}, {cx + h, cz - h}};
         for (int i = 0; i < 4; i++) {
             int j = (i + 1) % 4;
-            beam.addVertex(m, lo[i][0], Y / 16, lo[i][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
-            beam.addVertex(m, lo[j][0], Y / 16, lo[j][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
+            beam.addVertex(tilted, lo[i][0], Y / 16, lo[i][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
+            beam.addVertex(tilted, lo[j][0], Y / 16, lo[j][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
             beam.addVertex(m, hi[j][0], base, hi[j][1]).setColor(0.62f, 0.32f, 1f, 0.10f);
             beam.addVertex(m, hi[i][0], base, hi[i][1]).setColor(0.62f, 0.32f, 1f, 0.10f);
         }

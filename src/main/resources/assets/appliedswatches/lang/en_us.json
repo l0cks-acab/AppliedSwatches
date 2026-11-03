@@ -57,6 +57,7 @@
   "gui.appliedswatches.theme_name": "Theme name",
   "gui.appliedswatches.theme_saved": "Saved theme %s (open it in a Theme Terminal)",
   "item.appliedswatches.swatch_applicator": "Swatch Applicator",
+  "item.appliedswatches.creative_swatch_cell": "Creative Swatch Cell",
   "item.appliedswatches.swatch_applicator.named": "%s (%s)",
   "item.appliedswatches.swatch_applicator.random": "Random",
   "item.appliedswatches.swatch_applicator.selected": "Selected: %s  [%s]",
