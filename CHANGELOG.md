@@ -1,5 +1,15 @@
 # Changelog
 
+## AppliedSwatches 0.2.3
+
+**Swatch Applicator redesign**
+- New model in the AE2 machine palette with the terminals' rainbow strip: upright grip, wide head with the screen tilted back toward you.
+- The block preview and hologram now sit on the tilted screen.
+
+**Creative Swatch Cell** (creative only, for testing)
+- Goes in an ME Drive and supplies an endless amount of every block in the game, modded ones included.
+- Blocks put back into it are voided.
+
 ## AppliedSwatches 0.2.2
 
 **Autocrafting from the terminals**

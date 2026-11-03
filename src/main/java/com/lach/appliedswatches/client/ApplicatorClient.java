@@ -39,6 +39,12 @@ public final class ApplicatorClient {
     }
 
     @SubscribeEvent
+    static void setup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
+        appeng.api.client.StorageCellModels.registerModel(AppliedSwatches.CREATIVE_CELL.get(),
+                net.minecraft.resources.Identifier.fromNamespaceAndPath("ae2", "block/drive_creative_cell"));
+    }
+
+    @SubscribeEvent
     static void specialRenderers(RegisterSpecialModelRendererEvent event) {
         event.register(AppliedSwatches.id("applicator"), ApplicatorRenderer.Unbaked.MAP_CODEC);
     }

@@ -32,8 +32,10 @@ import java.util.function.Consumer;
 
 /** Draws the selected block's texture on the applicator's screen, and outside the GUI a hologram of it above. */
 public record ApplicatorRenderer(boolean hologram) implements SpecialModelRenderer<BlockState> {
-    /** Screen area on the model's top face, in model pixels. */
-    private static final float X0 = 4.5f, X1 = 8.5f, Z0 = 6f, Z1 = 10f, Y = 13.01f;
+    /** Screen area on the head's top face, in model pixels, before the head's tilt. */
+    private static final float X0 = 5.5f, X1 = 10f, Z0 = 5.75f, Z1 = 10.25f, Y = 15.26f;
+    /** Head tilt about z, matching tools/applicator_model.py (HEAD_ANGLE, HEAD_ORIGIN). */
+    private static final float HEAD_ANGLE = 22.5f, HEAD_OX = 8f, HEAD_OY = 13.5f;
     private static final int FULL = LightCoordsUtil.FULL_BRIGHT;
 
     @Override
@@ -50,7 +52,7 @@ public record ApplicatorRenderer(boolean hologram) implements SpecialModelRender
         int rgb = tint == -1 ? 0xFFFFFF : tint;
         float r = (rgb >> 16 & 255) / 255f, g = (rgb >> 8 & 255) / 255f, b = (rgb & 255) / 255f;
         out.submitCustomGeometry(pose, Sheets.cutoutBlockSheet(), (p, vc) -> {
-            Matrix4f m = p.pose();
+            Matrix4f m = tilted(p.pose());
             float x0 = X0 / 16, x1 = X1 / 16, z0 = Z0 / 16, z1 = Z1 / 16, y = Y / 16;
             vc.addVertex(m, x0, y, z0).setColor(r, g, b, 1).setUv(sprite.getU0(), sprite.getV0()).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL).setNormal(p, 0, 1, 0);
             vc.addVertex(m, x0, y, z1).setColor(r, g, b, 1).setUv(sprite.getU1(), sprite.getV0()).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL).setNormal(p, 0, 1, 0);
@@ -64,18 +66,21 @@ public record ApplicatorRenderer(boolean hologram) implements SpecialModelRender
     private static void submitHologram(BlockState state, PoseStack pose, SubmitNodeCollector out, float r, float g, float b) {
         float t = (System.currentTimeMillis() % 6000L) / 6000f;
         float bob = (float) Math.sin(t * Math.PI * 4) * 0.012f;
-        float cx = (X0 + X1) / 32, cz = (Z0 + Z1) / 32, base = Y / 16 + 0.09f + bob, size = 0.16f;
+        // Screen centre after the tilt; the hologram floats straight up from it.
+        double rad = Math.toRadians(HEAD_ANGLE), dx = (X0 + X1) / 2 - HEAD_OX, dy = Y - HEAD_OY;
+        float cx = (float) (HEAD_OX + dx * Math.cos(rad) - dy * Math.sin(rad)) / 16, cz = (Z0 + Z1) / 32;
+        float base = (float) (HEAD_OY + dx * Math.sin(rad) + dy * Math.cos(rad)) / 16 + 0.12f + bob, size = 0.16f;
 
         // Projection cone: from the screen's corners up to the hologram's base.
         float h = size * 0.45f;
         out.submitCustomGeometry(pose, RenderTypes.lightning(), (p, beam) -> {
-            Matrix4f m = p.pose();
+            Matrix4f m = p.pose(), mt = tilted(m);
             float[][] lo = {{X0 / 16, Z0 / 16}, {X0 / 16, Z1 / 16}, {X1 / 16, Z1 / 16}, {X1 / 16, Z0 / 16}};
             float[][] hi = {{cx - h, cz - h}, {cx - h, cz + h}, {cx + h, cz + h}, {cx + h, cz - h}};
             for (int i = 0; i < 4; i++) {
                 int j = (i + 1) % 4;
-                beam.addVertex(m, lo[i][0], Y / 16, lo[i][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
-                beam.addVertex(m, lo[j][0], Y / 16, lo[j][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
+                beam.addVertex(mt, lo[i][0], Y / 16, lo[i][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
+                beam.addVertex(mt, lo[j][0], Y / 16, lo[j][1]).setColor(0.62f, 0.32f, 1f, 0.55f);
                 beam.addVertex(m, hi[j][0], base, hi[j][1]).setColor(0.62f, 0.32f, 1f, 0.10f);
                 beam.addVertex(m, hi[i][0], base, hi[i][1]).setColor(0.62f, 0.32f, 1f, 0.10f);
             }
@@ -101,6 +106,11 @@ public record ApplicatorRenderer(boolean hologram) implements SpecialModelRender
             }
         });
         pose.popPose();
+    }
+
+    /** The pose with the head's tilt applied, for points on the screen. */
+    private static Matrix4f tilted(Matrix4f m) {
+        return new Matrix4f(m).rotateAround(Axis.ZP.rotationDegrees(HEAD_ANGLE), HEAD_OX / 16, HEAD_OY / 16, 0);
     }
 
     private static float shade(Direction d) {
