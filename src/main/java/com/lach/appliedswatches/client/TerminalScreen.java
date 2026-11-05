@@ -151,7 +151,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             }
         });
         applicatorBtn.setTooltip(Tooltip.create(Component.translatable("gui.appliedswatches.load_applicator")));
-        applicatorBtn.active = networkOnline && !exports.isEmpty();
+        applicatorBtn.active = networkOnline && !matches.isEmpty();
         ItemStack table = new ItemStack(Items.CRAFTING_TABLE);
         craftBtn = addRenderableWidget(new Button(x + 36, y, 16, 16, Component.empty(), b -> {
             showCraftable = !showCraftable;
@@ -211,7 +211,32 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     }
 
     private void loadApplicator() {
-        if (!exports.isEmpty()) ClientPacketDistributor.sendToServer(new LoadApplicatorPayload(List.copyOf(exports), paletteName()));
+        List<Item> blocks = applicatorBlocks();
+        if (!blocks.isEmpty()) ClientPacketDistributor.sendToServer(new LoadApplicatorPayload(blocks, paletteName()));
+    }
+
+    /**
+     * What the applicator gets: the selected blocks, stored or not, else what Export would send, else the best match for
+     * each swatch in turn. It takes from the network as it places, so blocks that are out of stock still belong in the palette.
+     */
+    private List<Item> applicatorBlocks() {
+        List<Item> out = new ArrayList<>();
+        for (Match m : matches) if (selected().contains(m.item()) && out.size() < SwatchTerminalBlockEntity.SLOTS) out.add(m.item());
+        if (!out.isEmpty()) return out;
+        if (!exports.isEmpty()) return List.copyOf(exports);
+        List<List<Match>> bySwatch = new ArrayList<>();
+        for (int i = 0; i < palette.length; i++) bySwatch.add(new ArrayList<>());
+        for (Match m : matches) bySwatch.get(m.swatch()).add(m);
+        for (int round = 0; out.size() < SwatchTerminalBlockEntity.SLOTS; round++) {
+            boolean any = false;
+            for (List<Match> list : bySwatch) {
+                if (round >= list.size() || out.size() >= SwatchTerminalBlockEntity.SLOTS) continue;
+                out.add(list.get(round).item());
+                any = true;
+            }
+            if (!any) break;
+        }
+        return out;
     }
 
     private void setFileMenuOpen(boolean open) {
@@ -326,7 +351,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         }
         if (exportBtn != null) exportBtn.active = networkOnline && !exports.isEmpty();
         if (craftAllBtn != null) craftAllBtn.active = networkOnline && !missingCraftables().isEmpty();
-        if (applicatorBtn != null) applicatorBtn.active = networkOnline && !exports.isEmpty();
+        if (applicatorBtn != null) applicatorBtn.active = networkOnline && !matches.isEmpty();
         updateCraftTooltip();
         updatePanel();
     }
@@ -463,11 +488,12 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         for (int i = 0; i < shown; i++) {
             Match m = matches.get(scroll * COLS + i);
             int cx = gx + (i % COLS) * CELL, cy = gy + (i / COLS) * CELL;
-            if (selected().contains(m.item())) {
-                drawSelectMark(g, cx, cy);
-            } else if (!exported.contains(m.item())) {
+            if (!exported.contains(m.item())) {
                 g.fill(cx, cy, cx + CELL, cy + CELL, m.craftable() ? 0x50000000 : 0x90000000);
                 if (m.craftable()) drawCraftMark(g, cx + CELL - 8, cy, m.autocraft());
+            }
+            if (selected().contains(m.item())) {
+                drawSelectMark(g, cx, cy);
             }
         }
         if (matches.isEmpty()) {
@@ -519,7 +545,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             tip.add(Component.literal(m.dist() < 0 ? String.format("#%06X", m.rgb()) : String.format("#%06X  ΔE %.1f", m.rgb(), m.dist()))
                     .withStyle(ChatFormatting.DARK_GRAY));
             if (m.dist() < 0) tip.add(Component.translatable("gui.appliedswatches.pinned").withStyle(ChatFormatting.GOLD));
-            if (!m.craftable()) tip.add(Component.translatable(selected().contains(m.item()) ? "gui.appliedswatches.click_deselect" : "gui.appliedswatches.click_select")
+            tip.add(Component.translatable(selected().contains(m.item()) ? "gui.appliedswatches.click_deselect" : "gui.appliedswatches.click_select")
                     .withStyle(ChatFormatting.DARK_AQUA));
             if (m.autocraft()) tip.add(Component.translatable("gui.appliedswatches.click_craft", perItem()).withStyle(ChatFormatting.LIGHT_PURPLE));
             g.setComponentTooltipForNextFrame(font, tip, mx, my);
@@ -552,7 +578,6 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         }
         if (button == 0) {
             Match m = matchAt(mx, my);
-            if (m != null && m.craftable()) return true;
             if (m != null) {
                 if (!selected().remove(m.item())) selected().add(m.item());
                 update();

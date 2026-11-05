@@ -26,7 +26,7 @@ import java.util.List;
 
 public class SwatchMenu extends AbstractContainerMenu {
     /** Most block types sent to the client in one listing. */
-    public static final int MAX_CANDIDATES = 4096;
+    public static final int MAX_CANDIDATES = 32768;
     public static final int OUT_X = 188, OUT_Y = 144, INV_X = 8, INV_Y = 144;
 
     private final @Nullable SwatchTerminalBlockEntity be;
