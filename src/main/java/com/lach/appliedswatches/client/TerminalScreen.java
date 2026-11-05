@@ -84,8 +84,8 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     /** Palette for the current settings, as 0xRRGGBB, in export order. */
     protected abstract int[] buildPalette();
 
-    /** Items skipped by the player. */
-    protected abstract Set<Item> excluded();
+    /** Blocks the player clicked; when any are stored, only these export or load. */
+    protected abstract Set<Item> selected();
 
     /** Name given to the palette when it is loaded into an applicator. */
     protected abstract String paletteName();
@@ -342,24 +342,25 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     private void pickExports(Comparator<Match> order) {
         List<List<Match>> bySwatch = new ArrayList<>();
         for (int i = 0; i < palette.length; i++) bySwatch.add(new ArrayList<>());
-        for (Match m : matches) if (!m.craftable() && !excluded().contains(m.item())) bySwatch.get(m.swatch()).add(m);
         List<Match> picked = new ArrayList<>();
-        for (int round = 0; picked.size() < SwatchTerminalBlockEntity.SLOTS; round++) {
-            boolean any = false;
-            for (List<Match> list : bySwatch) {
-                if (round >= list.size() || picked.size() >= SwatchTerminalBlockEntity.SLOTS) continue;
-                picked.add(list.get(round));
-                any = true;
+        for (Match m : matches)
+            if (!m.craftable() && selected().contains(m.item()) && picked.size() < SwatchTerminalBlockEntity.SLOTS) picked.add(m);
+        if (picked.isEmpty()) {
+            for (Match m : matches) if (!m.craftable()) bySwatch.get(m.swatch()).add(m);
+            for (int round = 0; picked.size() < SwatchTerminalBlockEntity.SLOTS; round++) {
+                boolean any = false;
+                for (List<Match> list : bySwatch) {
+                    if (round >= list.size() || picked.size() >= SwatchTerminalBlockEntity.SLOTS) continue;
+                    picked.add(list.get(round));
+                    any = true;
+                }
+                if (!any) break;
             }
-            if (!any) break;
         }
         picked.sort(order);
         exports.clear();
         for (Match m : picked) exports.add(m.item());
-        // Skipped blocks stay up front with the picks so a click doesn't send them to the back of the grid.
         List<Match> front = new ArrayList<>(picked);
-        for (Match m : matches) if (excluded().contains(m.item())) front.add(m);
-        front.sort(order);
         matches.removeAll(front);
         matches.addAll(0, front);
         // Craftables can't be exported, so they go last.
@@ -373,7 +374,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     private List<Item> missingCraftables() {
         List<List<Match>> bySwatch = new ArrayList<>();
         for (int i = 0; i < palette.length; i++) bySwatch.add(new ArrayList<>());
-        for (Match m : matches) if (m.craftable() && m.autocraft() && !excluded().contains(m.item())) bySwatch.get(m.swatch()).add(m);
+        for (Match m : matches) if (m.craftable() && m.autocraft()) bySwatch.get(m.swatch()).add(m);
         List<Item> out = new ArrayList<>();
         for (int round = 0; out.size() < SwatchTerminalBlockEntity.SLOTS; round++) {
             boolean any = false;
@@ -462,9 +463,8 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         for (int i = 0; i < shown; i++) {
             Match m = matches.get(scroll * COLS + i);
             int cx = gx + (i % COLS) * CELL, cy = gy + (i / COLS) * CELL;
-            if (excluded().contains(m.item())) {
-                g.fill(cx, cy, cx + CELL, cy + CELL, 0x80000000);
-                drawSkipMark(g, cx + CELL - 8, cy);
+            if (selected().contains(m.item())) {
+                drawSelectMark(g, cx, cy);
             } else if (!exported.contains(m.item())) {
                 g.fill(cx, cy, cx + CELL, cy + CELL, m.craftable() ? 0x50000000 : 0x90000000);
                 if (m.craftable()) drawCraftMark(g, cx + CELL - 8, cy, m.autocraft());
@@ -485,14 +485,13 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
         g.fill(x + 2, y + 3, x + 5, y + 4, 0xFFFFFFFF);
     }
 
-    /** Small red x badge, 7x7, marking a skipped block. */
-    private static void drawSkipMark(GuiGraphicsExtractor g, int x, int y) {
-        g.fill(x, y, x + 7, y + 7, 0xFF15171A);
-        g.fill(x + 1, y + 1, x + 6, y + 6, 0xFFB02424);
-        for (int i = 0; i < 3; i++) {
-            g.fill(x + 2 + i, y + 2 + i, x + 3 + i, y + 3 + i, 0xFFFFFFFF);
-            g.fill(x + 4 - i, y + 2 + i, x + 5 - i, y + 3 + i, 0xFFFFFFFF);
-        }
+    /** Green outline marking a block the player selected. */
+    private static void drawSelectMark(GuiGraphicsExtractor g, int x, int y) {
+        int c = 0xFF3FD15A;
+        g.fill(x, y, x + CELL, y + 1, c);
+        g.fill(x, y + CELL - 1, x + CELL, y + CELL, c);
+        g.fill(x, y + 1, x + 1, y + CELL - 1, c);
+        g.fill(x + CELL - 1, y + 1, x + CELL, y + CELL - 1, c);
     }
 
     @Override
@@ -520,7 +519,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             tip.add(Component.literal(m.dist() < 0 ? String.format("#%06X", m.rgb()) : String.format("#%06X  ΔE %.1f", m.rgb(), m.dist()))
                     .withStyle(ChatFormatting.DARK_GRAY));
             if (m.dist() < 0) tip.add(Component.translatable("gui.appliedswatches.pinned").withStyle(ChatFormatting.GOLD));
-            if (!m.craftable()) tip.add(Component.translatable(excluded().contains(m.item()) ? "gui.appliedswatches.click_include" : "gui.appliedswatches.click_exclude")
+            if (!m.craftable()) tip.add(Component.translatable(selected().contains(m.item()) ? "gui.appliedswatches.click_deselect" : "gui.appliedswatches.click_select")
                     .withStyle(ChatFormatting.DARK_AQUA));
             if (m.autocraft()) tip.add(Component.translatable("gui.appliedswatches.click_craft", perItem()).withStyle(ChatFormatting.LIGHT_PURPLE));
             g.setComponentTooltipForNextFrame(font, tip, mx, my);
@@ -555,7 +554,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
             Match m = matchAt(mx, my);
             if (m != null && m.craftable()) return true;
             if (m != null) {
-                if (!excluded().remove(m.item())) excluded().add(m.item());
+                if (!selected().remove(m.item())) selected().add(m.item());
                 update();
                 return true;
             }
