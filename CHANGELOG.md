@@ -1,5 +1,15 @@
 # Changelog
 
+## AppliedSwatches 0.2.5
+
+**Swatch Applicator loads out-of-stock blocks**
+- Load into Swatch Applicator now works even when the network holds none of the matching blocks (e.g. only craftable ones show). The applicator takes blocks from the network as it places, so it picks them up once they're stocked or crafted.
+- Craftable blocks can be selected too. Selected blocks keep their craft badge, so it's clear which ones aren't stored.
+
+**Fixes**
+- Crash when moving the Tolerance slider with Sodium (or other mods that free block textures). Colours are now read from the texture files instead.
+- Large networks: the terminal now sees up to 32,768 stored block types (was 4,096).
+
 ## AppliedSwatches 0.2.4
 
 **Click selects instead of skips**

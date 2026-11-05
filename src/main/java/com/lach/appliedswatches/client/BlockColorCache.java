@@ -1,5 +1,6 @@
 package com.lach.appliedswatches.client;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.SpriteContents;
@@ -17,6 +18,7 @@ import net.neoforged.neoforge.client.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,8 +84,19 @@ public final class BlockColorCache {
             b += (long) cb * c[3];
             n += c[3];
         }
-        if (n == 0) return null;
-        int rgb = (int) (r / n) << 16 | (int) (g / n) << 8 | (int) (b / n);
+        int rgb;
+        if (n > 0) rgb = (int) (r / n) << 16 | (int) (g / n) << 8 | (int) (b / n);
+        else {
+            // No readable texture: fall back to the block's map colour.
+            int map;
+            try {
+                map = state.getMapColor(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).col;
+            } catch (RuntimeException e) {
+                map = 0;
+            }
+            if (map == 0) return null;
+            rgb = map;
+        }
         boolean full;
         try {
             full = state.isCollisionShapeFullBlock(EmptyBlockGetter.INSTANCE, BlockPos.ZERO) && state.canOcclude();
@@ -97,20 +110,38 @@ public final class BlockColorCache {
     private static int[] sprite(TextureAtlasSprite sprite) {
         return SPRITES.computeIfAbsent(sprite.contents().name(), k -> {
             SpriteContents c = sprite.contents();
-            var img = c.getOriginalImage();
-            int w = Math.min(c.width(), img.getWidth()), h = Math.min(c.height(), img.getHeight());
-            long r = 0, g = 0, b = 0;
-            int n = 0;
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++) {
-                    int p = img.getPixelRGBA(x, y);
-                    if ((p >>> 24) < 128) continue;
-                    r += p & 0xFF;
-                    g += (p >> 8) & 0xFF;
-                    b += (p >> 16) & 0xFF;
-                    n++;
-                }
-            return n == 0 ? new int[4] : new int[]{(int) (r / n), (int) (g / n), (int) (b / n), n};
+            try {
+                return average(c.getOriginalImage(), c.width(), c.height());
+            } catch (RuntimeException e) {
+                // Some mods (Sodium and friends) free sprite images after upload: read the texture file instead.
+                return fromResource(k);
+            }
         });
+    }
+
+    private static int[] fromResource(ResourceLocation name) {
+        ResourceLocation file = name.withPath(path -> "textures/" + path + ".png");
+        try (InputStream in = Minecraft.getInstance().getResourceManager().open(file); NativeImage img = NativeImage.read(in)) {
+            // Animated textures are a vertical strip of frames: use the first.
+            return average(img, img.getWidth(), Math.min(img.getWidth(), img.getHeight()));
+        } catch (Exception e) {
+            return new int[4];
+        }
+    }
+
+    private static int[] average(NativeImage img, int width, int height) {
+        int w = Math.min(width, img.getWidth()), h = Math.min(height, img.getHeight());
+        long r = 0, g = 0, b = 0;
+        int n = 0;
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++) {
+                int p = img.getPixelRGBA(x, y);
+                if ((p >>> 24) < 128) continue;
+                r += p & 0xFF;
+                g += (p >> 8) & 0xFF;
+                b += (p >> 16) & 0xFF;
+                n++;
+            }
+        return n == 0 ? new int[4] : new int[]{(int) (r / n), (int) (g / n), (int) (b / n), n};
     }
 }
