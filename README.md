@@ -10,7 +10,7 @@ The **Swatch Terminal** joins an ME network (uses one channel) through fluix cab
 
 - Schemes: single, monochrome, analogous, complementary, split complementary, triadic
 - Tolerance slider (CIELAB ΔE), amount per block (1 to 64), full blocks only or any shape
-- Click a result to skip it; Return puts the output back into the network
+- Click results to select them: only selected blocks export or load into the applicator (none selected = automatic pick); Return puts the output back into the network
 - Crafting table button (off by default) also lists matching blocks you don't have but could craft, from any crafting or stonecutter recipe. They get a green + and Export skips them. Left off, big modpacks don't flood the grid.
 - Floppy button: save or load the swatch as a `.json` file, or save it as a theme for the Theme Terminal
 - Output slots are exposed to hoppers and pipes
@@ -99,7 +99,7 @@ Each block is scored against its closest palette colour, and lower means closer.
 ![Scores](docs/faq/q5-scores.png)
 
 **6. How does Export decide which blocks to send?**
-It takes turns: the best block for colour 1, then colour 2, and so on round the palette, then the second-best for each, until all 27 slots are planned. That way every palette colour gets a share, instead of whichever colour you own the most of filling everything. Click any result to mark it with a red ✕ and Export will skip it.
+It takes turns: the best block for colour 1, then colour 2, and so on round the palette, then the second-best for each, until all 27 slots are planned. That way every palette colour gets a share, instead of whichever colour you own the most of filling everything. Click results to hand-pick instead: they get a green outline, and Export and Send to Applicator use only those.
 
 ![Export](docs/faq/q6-export.png)
 

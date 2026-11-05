@@ -21,7 +21,7 @@ public class ThemeScreen extends TerminalScreen {
 
     /** Selected theme, by name, kept between screens. */
     private static String selectedName = "Cyberpunk";
-    private static final Set<Item> EXCLUDED = new HashSet<>();
+    private static final Set<Item> SELECTED = new HashSet<>();
 
     private List<Theme> themes = List.of();
     private Theme selected;
@@ -42,8 +42,8 @@ public class ThemeScreen extends TerminalScreen {
     }
 
     @Override
-    protected Set<Item> excluded() {
-        return EXCLUDED;
+    protected Set<Item> selected() {
+        return SELECTED;
     }
 
     @Override
@@ -72,7 +72,7 @@ public class ThemeScreen extends TerminalScreen {
     private void select(Theme t) {
         selected = t;
         selectedName = t.name();
-        EXCLUDED.clear();
+        SELECTED.clear();
         if (t.tolerance() > 0) {
             tolerance = Mth.clamp(t.tolerance(), 1, MAX_TOLERANCE);
             syncTolerance();

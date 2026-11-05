@@ -31,7 +31,7 @@ public class SwatchScreen extends TerminalScreen {
     /** Exact colour last typed or loaded, so hex round trips; -1 once the picker moves. */
     private static int exactRgb = -1;
     private static Scheme scheme = Scheme.ANALOGOUS;
-    private static final Set<Item> EXCLUDED = new HashSet<>();
+    private static final Set<Item> SELECTED = new HashSet<>();
 
     private int dragging;
     /** "Save as theme" name prompt, drawn over the screen while open. */
@@ -51,8 +51,8 @@ public class SwatchScreen extends TerminalScreen {
     }
 
     @Override
-    protected Set<Item> excluded() {
-        return EXCLUDED;
+    protected Set<Item> selected() {
+        return SELECTED;
     }
 
     @Override
@@ -176,8 +176,8 @@ public class SwatchScreen extends TerminalScreen {
         for (int c : palette) pal.add(Theme.formatColor(c));
         o.add("palette", pal);
         JsonArray ex = new JsonArray();
-        for (Item i : EXCLUDED) ex.add(BuiltInRegistries.ITEM.getKey(i).toString());
-        o.add("excluded", ex);
+        for (Item i : SELECTED) ex.add(BuiltInRegistries.ITEM.getKey(i).toString());
+        o.add("selected", ex);
         return o;
     }
 
@@ -197,12 +197,12 @@ public class SwatchScreen extends TerminalScreen {
             for (int i = 0; i < PER_ITEM.length; i++) if (PER_ITEM[i] <= want) perItemIdx = i;
         }
         if (o.has("fullOnly")) fullOnly = o.get("fullOnly").getAsBoolean();
-        if (o.has("excluded")) {
-            EXCLUDED.clear();
-            for (JsonElement e : o.getAsJsonArray("excluded")) {
+        SELECTED.clear();
+        if (o.has("selected")) {
+            for (JsonElement e : o.getAsJsonArray("selected")) {
                 ResourceLocation id = ResourceLocation.tryParse(e.getAsString());
                 Item item = id == null ? Items.AIR : BuiltInRegistries.ITEM.get(id);
-                if (item != Items.AIR) EXCLUDED.add(item);
+                if (item != Items.AIR) SELECTED.add(item);
             }
         }
         hex.setValue(String.format("%06X", rgb()));

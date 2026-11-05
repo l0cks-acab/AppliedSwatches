@@ -1,5 +1,13 @@
 # Changelog
 
+## AppliedSwatches 0.2.4
+
+**Click selects instead of skips**
+- Clicking a result now selects it (green outline). Export and Send to Applicator then use only the selected blocks.
+- With nothing selected they use the automatic pick, as before.
+- Fixes Send to Applicator greying out after clicking blocks, and the applicator loading fewer blocks than shown.
+- Saved swatches keep their selection.
+
 ## AppliedSwatches 0.2.3
 
 **Swatch Applicator redesign**
