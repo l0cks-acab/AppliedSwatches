@@ -5,18 +5,14 @@ import com.lach.appliedswatches.ApplicatorData;
 import com.lach.appliedswatches.ApplicatorItem;
 import com.lach.appliedswatches.PlaceMode;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.ShapeRenderer;
 import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.neoforged.neoforge.client.event.ExtractBlockOutlineRenderStateEvent;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import java.util.List;
 import com.lach.appliedswatches.net.CycleApplicatorPayload;
 import net.minecraft.client.Minecraft;
@@ -51,30 +47,36 @@ public final class ApplicatorClient {
 
     /** Outlines where the next click will place blocks. */
     @SubscribeEvent
-    static void preview(RenderLevelStageEvent.AfterTranslucentBlocks event) {
+    static void preview(ExtractBlockOutlineRenderStateEvent event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null || !(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) return;
+        if (mc.player == null) return;
         ItemStack held = mc.player.getMainHandItem();
         if (!(held.getItem() instanceof ApplicatorItem)) held = mc.player.getOffhandItem();
         if (!(held.getItem() instanceof ApplicatorItem) || mc.player.isShiftKeyDown()) return;
         ApplicatorData d = ApplicatorItem.data(held);
         if (d.blocks().isEmpty() || d.mode() == PlaceMode.SINGLE) return;
-        List<BlockPos> targets = d.mode().targets(mc.level, hit.getBlockPos(), hit.getDirection(), d.size());
+        BlockHitResult hit = event.getHitResult();
+        List<BlockPos> targets = d.mode().targets(event.getLevel(), hit.getBlockPos(), hit.getDirection(), d.size());
         if (targets.isEmpty()) return;
-        Vec3 cam = event.getLevelRenderState().cameraRenderState.pos;
-        PoseStack pose = event.getPoseStack();
-        if (pose == null) return;
-        MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-        VertexConsumer lines = buffers.getBuffer(RenderTypes.lines());
+        BlockPos origin = event.getBlockPos();
+        VoxelShape shape = Shapes.empty();
         for (BlockPos p : targets)
-            ShapeRenderer.renderShape(pose, lines, Shapes.create(new AABB(p).deflate(0.04)), -cam.x, -cam.y, -cam.z, 0xE6B880FF, 2f);
-        buffers.endBatch(RenderTypes.lines());
+            shape = Shapes.joinUnoptimized(shape, Shapes.create(new AABB(p.subtract(origin)).deflate(0.04)), net.minecraft.world.phys.shapes.BooleanOp.OR);
+        VoxelShape outline = shape;
+        event.addCustomRenderer((state, out, pose, level) -> {
+            var cam = level.cameraRenderState.pos;
+            pose.pushPose();
+            pose.translate(origin.getX() - cam.x, origin.getY() - cam.y, origin.getZ() - cam.z);
+            out.submitShapeOutline(pose, outline, RenderTypes.lines(), 0xE6B880FF, 2f, state.isTranslucent());
+            pose.popPose();
+            return false;
+        });
     }
 
     @SubscribeEvent
     static void scroll(InputEvent.MouseScrollingEvent event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.screen != null || !mc.player.isShiftKeyDown() || event.getScrollDeltaY() == 0) return;
+        if (mc.player == null || mc.gui.screen() != null || !mc.player.isShiftKeyDown() || event.getScrollDeltaY() == 0) return;
         if (!(mc.player.getMainHandItem().getItem() instanceof ApplicatorItem)) return;
         ClientPacketDistributor.sendToServer(new CycleApplicatorPayload(event.getScrollDeltaY() > 0 ? -1 : 1));
         event.setCanceled(true);

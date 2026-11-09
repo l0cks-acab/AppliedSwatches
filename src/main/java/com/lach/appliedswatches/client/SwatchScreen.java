@@ -18,7 +18,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
-import org.lwjgl.glfw.GLFW;
 
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -62,9 +61,10 @@ public class SwatchScreen extends TerminalScreen {
     protected void initPanel(int x, int y) {
         hex = new EditBox(font, x + 18, y + PICK_Y + SV + 6, 44, 12, Component.literal("hex"));
         hex.setMaxLength(6);
-        hex.setFilter(t -> t.matches("[0-9a-fA-F]{0,6}"));
         hex.setValue(String.format("%06X", rgb()));
         hex.setResponder(t -> {
+            String clean = t.replaceAll("[^0-9a-fA-F]", "");
+            if (!clean.equals(t)) { hex.setValue(clean); return; }
             if (t.length() == 6) setRgb(Integer.parseInt(t, 16));
         });
         addRenderableWidget(hex);
@@ -77,7 +77,7 @@ public class SwatchScreen extends TerminalScreen {
                 new MenuEntry(Component.translatable("gui.appliedswatches.save"), this::save),
                 new MenuEntry(Component.translatable("gui.appliedswatches.load"), this::load),
                 new MenuEntry(Component.translatable("gui.appliedswatches.save_theme"), this::openNamePrompt),
-                new MenuEntry(Component.translatable("gui.appliedswatches.folder"), () -> Util.getPlatform().openFile(dir().toFile()))));
+                new MenuEntry(Component.translatable("gui.appliedswatches.folder"), () -> com.mojang.blaze3d.Blaze3D.openPath(dir()))));
     }
 
     private void initNamePrompt() {
@@ -325,12 +325,12 @@ public class SwatchScreen extends TerminalScreen {
     public boolean keyPressed(KeyEvent event) {
         int key = event.key();
         if (naming) {
-            if (key == GLFW.GLFW_KEY_ESCAPE) closeNamePrompt();
-            else if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) saveAsTheme();
+            if (event.isEscape()) closeNamePrompt();
+            else if (event.isConfirmation()) saveAsTheme();
             else themeName.keyPressed(event);
             return true;
         }
-        if (hex.isFocused() && key != GLFW.GLFW_KEY_ESCAPE) return hex.keyPressed(event) || true;
+        if (hex.isFocused() && !event.isEscape()) return hex.keyPressed(event) || true;
         return super.keyPressed(event);
     }
 }

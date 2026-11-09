@@ -59,7 +59,7 @@ public class ThemeScreen extends TerminalScreen {
         addFileMenu(x + CTRL_X, y + FILE_Y, List.of(
                 new MenuEntry(Component.translatable("gui.appliedswatches.import"), this::importTheme),
                 new MenuEntry(Component.translatable("gui.appliedswatches.export_json"), this::exportTheme),
-                new MenuEntry(Component.translatable("gui.appliedswatches.folder"), () -> Util.getPlatform().openFile(ThemeManager.userDir().toFile()))));
+                new MenuEntry(Component.translatable("gui.appliedswatches.folder"), () -> com.mojang.blaze3d.Blaze3D.openPath(ThemeManager.userDir()))));
     }
 
     private void reloadThemes() {

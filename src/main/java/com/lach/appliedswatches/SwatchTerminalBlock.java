@@ -25,7 +25,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 public class SwatchTerminalBlock extends BaseEntityBlock {
-    public static final MapCodec<SwatchTerminalBlock> CODEC = simpleCodec(SwatchTerminalBlock::new);
     public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
     public static BlockBehaviour.Properties properties(BlockBehaviour.Properties p) {
         return p.mapColor(MapColor.METAL).strength(2.2f, 11f).sound(SoundType.METAL).requiresCorrectToolForDrops();
@@ -34,11 +33,6 @@ public class SwatchTerminalBlock extends BaseEntityBlock {
     public SwatchTerminalBlock(Properties props) {
         super(props);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
-    }
-
-    @Override
-    protected MapCodec<? extends BaseEntityBlock> codec() {
-        return CODEC;
     }
 
     @Override

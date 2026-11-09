@@ -51,7 +51,7 @@ public record ApplicatorRenderer(boolean hologram) implements SpecialModelRender
         int tint = ModelQuads.tint(state, 0);
         int rgb = tint == -1 ? 0xFFFFFF : tint;
         float r = (rgb >> 16 & 255) / 255f, g = (rgb >> 8 & 255) / 255f, b = (rgb & 255) / 255f;
-        out.submitCustomGeometry(pose, Sheets.cutoutBlockSheet(), (p, vc) -> {
+        out.submitCustomGeometry(pose, Sheets.cutoutBlockItemSheet(), (p, vc) -> {
             Matrix4f m = tilted(p.pose());
             float x0 = X0 / 16, x1 = X1 / 16, z0 = Z0 / 16, z1 = Z1 / 16, y = Y / 16;
             vc.addVertex(m, x0, y, z0).setColor(r, g, b, 1).setUv(sprite.getU0(), sprite.getV0()).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL).setNormal(p, 0, 1, 0);
@@ -88,7 +88,7 @@ public record ApplicatorRenderer(boolean hologram) implements SpecialModelRender
 
         pose.pushPose();
         pose.translate(cx, base, cz);
-        pose.mulPose(Axis.YP.rotationDegrees(t * 360));
+        pose.mulPose(new org.joml.Matrix4f().rotation(Axis.YP.rotationDegrees(t * 360)));
         pose.scale(size, size, size);
         pose.translate(-0.5f, 0, -0.5f);
         // Flicker a little, like a projection.
@@ -100,7 +100,7 @@ public record ApplicatorRenderer(boolean hologram) implements SpecialModelRender
             inst.setLightCoords(FULL);
             inst.setOverlayCoords(OverlayTexture.NO_OVERLAY);
             for (BakedQuad q : quads) {
-                float shade = q.materialInfo().shade() ? shade(q.direction()) : 1f;
+                float shade = shade(q.materialInfo().shadeDirectionOverride() != null ? q.materialInfo().shadeDirectionOverride() : q.direction());
                 inst.setColor(argb(alpha, hr * shade, hg * shade, hb * shade));
                 vc.putBakedQuad(p, q, inst);
             }

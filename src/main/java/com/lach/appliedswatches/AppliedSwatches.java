@@ -70,7 +70,7 @@ public class AppliedSwatches {
             () -> IMenuTypeExtension.create((id, inv, buf) -> new SwatchMenu(AppliedSwatches.THEME_MENU.get(), id, inv)));
 
     public AppliedSwatches(IEventBus modBus, ModContainer container) {
-        container.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
+        container.registerConfig(ModConfig.Type.SYNCED, Config.SPEC);
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);

@@ -2,7 +2,7 @@
 
 ![AppliedSwatches](docs/banner.png)
 
-Applied Energistics 2 addon for NeoForge 1.21.1.
+Applied Energistics 2 addon for NeoForge. This branch: Minecraft 26.3 (AE2 26.3 alpha).
 
 ![Swatch and Theme Terminals on an ME network](docs/terminals.png)
 
@@ -65,7 +65,7 @@ Recipes: Swatch Terminal (shapeless) = ME Terminal, Logic Processor, red, green 
 
 Config (`config/appliedswatches-server.toml`): `swatchTerminalIdlePower` and `themeTerminalIdlePower`, AE per tick, default 2; `applicator.range`, default 64 (0 = anywhere in the dimension).
 
-Requires AE2 19.x.
+Requires AE2 26.3.1-alpha or newer.
 
 ## FAQ: how blocks are picked
 

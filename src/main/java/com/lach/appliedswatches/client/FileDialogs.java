@@ -8,13 +8,15 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.neoforged.fml.loading.FMLPaths;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
+import org.lwjgl.sdl.SDLDialog;
+import org.lwjgl.sdl.SDL_DialogFileCallback;
+import org.lwjgl.sdl.SDL_DialogFileFilter;
+import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,46 +42,45 @@ public final class FileDialogs {
     }
 
     public static void save(Path suggested, Consumer<Path> then) {
-        run(() -> {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                return TinyFileDialogs.tinyfd_saveFileDialog(Component.translatable("gui.appliedswatches.save_title").getString(),
-                        suggested.toString(), filter(stack), "JSON");
-            }
-        }, then);
+        show(true, suggested.toString(), then);
     }
 
     public static void open(Path dir, Consumer<Path> then) {
-        run(() -> {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                return TinyFileDialogs.tinyfd_openFileDialog(Component.translatable("gui.appliedswatches.open_title").getString(),
-                        // A file pattern (not the bare folder) opens inside the folder on every platform.
-                        dir.resolve("*.json").toString(), filter(stack), "JSON", false);
-            }
-        }, then);
+        show(false, dir.toString() + java.io.File.separator, then);
     }
 
-    private static PointerBuffer filter(MemoryStack stack) {
-        return stack.mallocPointer(1).put(stack.UTF8("*.json")).flip();
-    }
-
-    private interface Dialog {
-        String show();
-    }
-
-    private static void run(Dialog dialog, Consumer<Path> then) {
-        Thread t = new Thread(() -> {
-            String chosen = null;
+    /** SDL file dialog; opened on the render thread, result handed back on it. */
+    private static void show(boolean save, String location, Consumer<Path> then) {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> {
+            ByteBuffer name = MemoryUtil.memUTF8("JSON");
+            ByteBuffer pattern = MemoryUtil.memUTF8("json");
+            SDL_DialogFileFilter.Buffer filters = SDL_DialogFileFilter.calloc(1);
+            filters.get(0).name(name).pattern(pattern);
+            SDL_DialogFileCallback[] cb = new SDL_DialogFileCallback[1];
+            cb[0] = SDL_DialogFileCallback.create((userdata, list, filter) -> {
+                String chosen = null;
+                if (list != 0L) {
+                    long first = MemoryUtil.memGetAddress(list);
+                    if (first != 0L) chosen = MemoryUtil.memUTF8(first);
+                }
+                String c = chosen;
+                mc.execute(() -> {
+                    cb[0].free();
+                    filters.free();
+                    MemoryUtil.memFree(name);
+                    MemoryUtil.memFree(pattern);
+                    if (c != null && !c.isBlank()) then.accept(Path.of(c));
+                });
+            });
             try {
-                chosen = dialog.show();
+                long window = mc.getWindow().handle();
+                if (save) SDLDialog.SDL_ShowSaveFileDialog(cb[0], 0L, window, filters, location);
+                else SDLDialog.SDL_ShowOpenFileDialog(cb[0], 0L, window, filters, location, false);
             } catch (Throwable e) {
                 LOGGER.warn("File dialog failed", e);
             }
-            if (chosen == null || chosen.isBlank()) return;
-            Path p = Path.of(chosen);
-            Minecraft.getInstance().execute(() -> then.accept(p));
-        }, "AppliedSwatches file dialog");
-        t.setDaemon(true);
-        t.start();
+        });
     }
 
     public static JsonObject read(Path p) throws IOException {
