@@ -62,9 +62,10 @@ public class SwatchScreen extends TerminalScreen {
     protected void initPanel(int x, int y) {
         hex = new EditBox(font, x + 18, y + PICK_Y + SV + 6, 44, 12, Component.literal("hex"));
         hex.setMaxLength(6);
-        hex.setFilter(t -> t.matches("[0-9a-fA-F]{0,6}"));
         hex.setValue(String.format("%06X", rgb()));
         hex.setResponder(t -> {
+            String clean = t.replaceAll("[^0-9a-fA-F]", "");
+            if (!clean.equals(t)) { hex.setValue(clean); return; }
             if (t.length() == 6) setRgb(Integer.parseInt(t, 16));
         });
         addRenderableWidget(hex);

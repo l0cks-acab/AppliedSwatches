@@ -51,7 +51,7 @@ public record ApplicatorRenderer(boolean hologram) implements SpecialModelRender
         int tint = ModelQuads.tint(state, 0);
         int rgb = tint == -1 ? 0xFFFFFF : tint;
         float r = (rgb >> 16 & 255) / 255f, g = (rgb >> 8 & 255) / 255f, b = (rgb & 255) / 255f;
-        out.submitCustomGeometry(pose, Sheets.cutoutBlockSheet(), (p, vc) -> {
+        out.submitCustomGeometry(pose, Sheets.cutoutBlockItemSheet(), (p, vc) -> {
             Matrix4f m = tilted(p.pose());
             float x0 = X0 / 16, x1 = X1 / 16, z0 = Z0 / 16, z1 = Z1 / 16, y = Y / 16;
             vc.addVertex(m, x0, y, z0).setColor(r, g, b, 1).setUv(sprite.getU0(), sprite.getV0()).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL).setNormal(p, 0, 1, 0);
