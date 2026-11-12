@@ -81,6 +81,7 @@ public class AppliedSwatches {
         modBus.addListener(AppliedSwatches::creativeTabs);
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent e) -> e.enqueueWork(() -> appeng.api.storage.StorageCells.addCellHandler(CreativeSwatchCell.HANDLER)));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) -> CraftRequests.tick());
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppedEvent e) -> CraftRequests.clear());
         LOGGER.info("{} loaded", MODID);
     }
 

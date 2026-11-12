@@ -55,6 +55,11 @@ public final class CraftRequests {
         if (batch.pending == 0) report(batch);
     }
 
+    /** Drops jobs left over from a server that has stopped, so they can't hold on to its grids and players. */
+    public static void clear() {
+        JOBS.clear();
+    }
+
     public static void tick() {
         for (Iterator<Job> it = JOBS.iterator(); it.hasNext(); ) {
             Job job = it.next();

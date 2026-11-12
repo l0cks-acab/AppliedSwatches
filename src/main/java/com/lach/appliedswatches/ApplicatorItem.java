@@ -7,6 +7,7 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.storage.StorageHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -22,8 +23,11 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.util.BlockSnapshot;
+import net.neoforged.neoforge.event.EventHooks;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -115,9 +119,15 @@ public class ApplicatorItem extends Item {
                     done = true;
                     break;
                 }
+                BlockPos at = place.getClickedPos();
+                // Spawn protection, claims and the like get their say before anything leaves the network.
+                if (!level.mayInteract(player, at) || !player.mayUseItemAt(at, ctx.getClickedFace(), key.toStack(1))) {
+                    done = true;
+                    break;
+                }
                 // Check the simulated extraction first so a failed placement never has to put the block back.
                 if (StorageHelper.poweredExtraction(energy, storage, key, 1, src, Actionable.SIMULATE) < 1) continue;
-                if (block.place(place).consumesAction()) {
+                if (placeBlock(level, player, block, place, at, ctx.getClickedFace())) {
                     StorageHelper.poweredExtraction(energy, storage, key, 1, src);
                     placed++;
                 }
@@ -133,6 +143,27 @@ public class ApplicatorItem extends Item {
         if (targets.size() > 1)
             player.displayClientMessage(Component.translatable("item.appliedswatches.swatch_applicator.placed", placed, targets.size()), true);
         return InteractionResult.CONSUME;
+    }
+
+    /**
+     * Places one block and posts the place event for it, undoing the placement when a protection mod cancels it.
+     * The applicator's own use already captures block snapshots; that is switched off here so a cancelled
+     * placement is caught before its block is taken out of the network.
+     */
+    private static boolean placeBlock(Level level, ServerPlayer player, BlockItem block, BlockPlaceContext place, BlockPos at, Direction face) {
+        boolean capturing = level.captureBlockSnapshots;
+        level.captureBlockSnapshots = false;
+        try {
+            BlockSnapshot before = BlockSnapshot.create(level.dimension(), level, at);
+            if (!block.place(place).consumesAction()) return false;
+            if (EventHooks.onBlockPlace(player, before, face)) {
+                before.restore(Block.UPDATE_ALL);
+                return false;
+            }
+            return true;
+        } finally {
+            level.captureBlockSnapshots = capturing;
+        }
     }
 
     private static @Nullable SwatchTerminalBlockEntity linkedTerminal(ServerPlayer player, ApplicatorData d) {
