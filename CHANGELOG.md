@@ -1,5 +1,12 @@
 # Changelog
 
+## AppliedSwatches 0.2.6
+
+**Fixes**
+- Swatch Applicator respects spawn protection and claim mods. Line, Square and Wand placements check every block, not just the one you click.
+- A placement a claim mod blocks no longer takes the block out of the network.
+- Pending autocraft requests are dropped when a world closes.
+
 ## AppliedSwatches 0.2.5
 
 **Swatch Applicator loads out-of-stock blocks**
