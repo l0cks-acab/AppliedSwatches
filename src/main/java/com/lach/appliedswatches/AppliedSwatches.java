@@ -111,29 +111,29 @@ public class AppliedSwatches {
         r.playToClient(CandidatesPayload.TYPE, CandidatesPayload.STREAM_CODEC, (p, ctx) -> ClientBridge.candidates(p));
         r.playToServer(RefreshPayload.TYPE, RefreshPayload.STREAM_CODEC, (p, ctx) -> {
             SwatchMenu menu = openMenu(ctx);
-            if (menu != null) menu.sendCandidates();
+            if (menu != null) menu.requestCandidates();
         });
         r.playToServer(ReturnPayload.TYPE, ReturnPayload.STREAM_CODEC, (p, ctx) -> {
             SwatchMenu menu = openMenu(ctx);
-            if (menu != null) {
+            if (menu != null && menu.tryAction()) {
                 menu.returnAll();
-                menu.sendCandidates();
+                menu.requestCandidates();
             }
         });
         r.playToServer(ExportPayload.TYPE, ExportPayload.STREAM_CODEC, (p, ctx) -> {
             SwatchMenu menu = openMenu(ctx);
-            if (menu != null) {
+            if (menu != null && menu.tryAction()) {
                 menu.export(p.items(), p.perItem());
-                menu.sendCandidates();
+                menu.requestCandidates();
             }
         });
         r.playToServer(CraftPayload.TYPE, CraftPayload.STREAM_CODEC, (p, ctx) -> {
             SwatchMenu menu = openMenu(ctx);
-            if (menu != null) menu.craft(p.items(), p.amount());
+            if (menu != null && menu.tryAction()) menu.craft(p.items(), p.amount());
         });
         r.playToServer(LoadApplicatorPayload.TYPE, LoadApplicatorPayload.STREAM_CODEC, (p, ctx) -> {
             SwatchMenu menu = openMenu(ctx);
-            if (menu != null) loadApplicator((ServerPlayer) ctx.player(), menu, p);
+            if (menu != null && menu.tryAction()) loadApplicator((ServerPlayer) ctx.player(), menu, p);
         });
         r.playToServer(ApplicatorConfigPayload.TYPE, ApplicatorConfigPayload.STREAM_CODEC, (p, ctx) -> {
             ItemStack held = ctx.player().getItemInHand(p.hand());
