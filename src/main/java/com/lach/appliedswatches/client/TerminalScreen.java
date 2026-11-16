@@ -10,6 +10,7 @@ import com.lach.appliedswatches.net.LoadApplicatorPayload;
 import com.lach.appliedswatches.net.RefreshPayload;
 import com.lach.appliedswatches.net.ReturnPayload;
 import net.minecraft.ChatFormatting;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -40,6 +41,10 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     protected static final int GRID_X = 188, GRID_Y = 18, COLS = 9, ROWS = 5, CELL = 18;
     protected static final int[] PER_ITEM = {1, 4, 8, 16, 32, 64};
     protected static final int MAX_TOLERANCE = 60;
+    /** The tolerance slider greys out this long after each change, so it can't be spammed. */
+    private static final long TOLERANCE_COOLDOWN_MS = 3000;
+    /** Shared by both terminals, and kept when the screen is reopened. */
+    private static long toleranceReadyAt;
 
     /** Settings are kept between screens and shared by both terminals. */
     protected static int tolerance = 20, perItemIdx = 5;
@@ -70,6 +75,8 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     protected Button perItemBtn, fullBtn;
     private Button exportBtn, applicatorBtn, craftBtn, craftAllBtn;
     private AbstractSliderButton toleranceSlider;
+    /** The slider moved but the grid hasn't been re-ranked yet (waits for the mouse to let go). */
+    private boolean tolerancePending;
     private List<MenuEntry> fileMenu = List.of();
     private boolean fileMenuOpen;
     private FloppyButton floppy;
@@ -279,15 +286,40 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
 
             @Override
             protected void updateMessage() {
-                setMessage(Component.translatable("gui.appliedswatches.tolerance", tolerance));
+                setMessage(toleranceLabel());
             }
 
             @Override
             protected void applyValue() {
                 tolerance = Math.max(1, (int) Math.round(value * MAX_TOLERANCE));
-                TerminalScreen.this.update();
+                tolerancePending = true;
             }
         });
+        tickTolerance();
+    }
+
+    /** Re-ranks once the slider is let go, then greys it out for the cooldown. */
+    private void tickTolerance() {
+        if (toleranceSlider == null) return;
+        long now = Util.getMillis();
+        if (tolerancePending && !minecraft.mouseHandler.isLeftPressed()) {
+            tolerancePending = false;
+            toleranceReadyAt = now + TOLERANCE_COOLDOWN_MS;
+            update();
+        }
+        boolean ready = now >= toleranceReadyAt;
+        if (toleranceSlider.active != ready) {
+            toleranceSlider.active = ready;
+            if (!ready && getFocused() == toleranceSlider) setFocused(null);
+        }
+        toleranceSlider.setMessage(toleranceLabel());
+    }
+
+    private static Component toleranceLabel() {
+        long left = toleranceReadyAt - Util.getMillis();
+        return left > 0
+                ? Component.translatable("gui.appliedswatches.tolerance_cooldown", tolerance, (left + 999) / 1000)
+                : Component.translatable("gui.appliedswatches.tolerance", tolerance);
     }
 
     protected void refresh() {
@@ -429,6 +461,7 @@ public abstract class TerminalScreen extends AbstractContainerScreen<SwatchMenu>
     @Override
     protected void containerTick() {
         super.containerTick();
+        tickTolerance();
         if (menu.online() != wasOnline) {
             wasOnline = menu.online();
             refresh();
