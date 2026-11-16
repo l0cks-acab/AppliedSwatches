@@ -34,6 +34,9 @@ public class SwatchMenu extends AbstractContainerMenu {
     private final Player player;
     private final ContainerLevelAccess access;
     private final DataSlot online;
+    /** Server-side anti-spam: listings are coalesced, actions are dropped while cooling down. */
+    private boolean candidatesPending;
+    private long nextCandidates, nextAction;
 
     /** Client side. */
     public SwatchMenu(MenuType<?> type, int id, Inventory inv) {
@@ -78,6 +81,30 @@ public class SwatchMenu extends AbstractContainerMenu {
 
     private @Nullable IGrid grid() {
         return be != null && be.managedNode().isActive() ? be.managedNode().getGrid() : null;
+    }
+
+    /** Queues a listing; it goes out on a later tick, at most once every {@link Config#listingCooldownTicks()} ticks. */
+    public void requestCandidates() {
+        candidatesPending = true;
+    }
+
+    /** False while the last terminal action is cooling down, so a spamming client can't flood the network. */
+    public boolean tryAction() {
+        long now = player.level().getGameTime();
+        if (now < nextAction) return false;
+        nextAction = now + Config.actionCooldownTicks();
+        return true;
+    }
+
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        if (!candidatesPending) return;
+        long now = player.level().getGameTime();
+        if (now < nextCandidates) return;
+        candidatesPending = false;
+        nextCandidates = now + Config.listingCooldownTicks();
+        sendCandidates();
     }
 
     /** Sends the block items the network holds to this menu's player. */

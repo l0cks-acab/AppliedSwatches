@@ -1,5 +1,11 @@
 # Changelog
 
+## AppliedSwatches 0.2.7
+
+**Anti-spam**
+- Tolerance slider greys out for 3 seconds after each change, with a countdown. The grid re-ranks once you let go of the slider instead of on every drag step.
+- Server merges repeated network refreshes from one terminal screen and drops Export / Return / Craft / Load applicator requests sent faster than the cooldown. Both limits are in `appliedswatches-server.toml` under `[antispam]`.
+
 ## AppliedSwatches 0.2.6
 
 **Fixes**
